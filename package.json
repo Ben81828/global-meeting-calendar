@@ -12,8 +12,10 @@
     "@joergdietrich/leaflet.terminator": "^1.1.0",
     "autoprefixer": "^10.4.14",
     "leaflet": "^1.9.4",
+    "leaflet-sidebar": "^0.2.4",
     "moment-timezone": "^0.5.43",
     "postcss": "^8.4.27",
+    "sidebar-v2": "^0.4.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {

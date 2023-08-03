@@ -1,12 +1,17 @@
 <script setup>
 
 // import * as Vue from 'vue';
-import L from "leaflet"
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import terminator from '@joergdietrich/leaflet.terminator';
-import { ref, watch, computed, onMounted, nextTick  } from 'vue';
-import  "../L.timezones.js"
+import { ref, watch, computed, onMounted} from 'vue';
+import  "../L.timezones.js";
 import moment from 'moment-timezone';
 
+//test
+import "sidebar-v2/js/leaflet-sidebar.js"
+import "sidebar-v2/css/leaflet-sidebar.css"
+import "sidebar-v2/js/leaflet-sidebar.min.js"
 
 
 // const get_target_time = (layer) =>{
@@ -111,15 +116,16 @@ let map;
 // 將代碼移入 onMounted 中
 onMounted(() => {
 
+    // 監控日期、時間或者時區的改變
+    watch([selectedTimeZone, selectedDate, selectedMins], () => {
+        terminatorLayer.setLatLngs(terminator({time: dateISO.value}).getLatLngs()).redraw();
+    });
+
+
      // 建立 leaflet 地圖
     map = L.map('map').setView([24.7740885327886, 121.01952922069313], 2.5);
     terminatorLayer = terminator({time: dateISO.value}).addTo(map);
 
-    // 監控日期、時間或者時區的改變
-    watch([selectedTimeZone, selectedDate, selectedMins], () => {
- 
-        terminatorLayer.setLatLngs(terminator({time: dateISO.value}).getLatLngs()).redraw();
-    });
 
     // https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png   // 黑底地圖
     L.tileLayer(' https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -127,7 +133,10 @@ onMounted(() => {
         maxZoom: 3, // 這裡設定Z最大為5
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-
+    
+    // sidebar
+    const sidebar = L.control.sidebar('sidebar').addTo(map);
+    
     // 限制使用者未能滾動出此範圍
     var southWest = L.latLng(-69.98155760646617, -180),
         northEast = L.latLng(89.99346179538875, 180);
@@ -216,9 +225,53 @@ const incrementMins = () => {
 <template>
     
     <div id="map_container">
-        <!-- 地圖 -->
-        <div id="map"></div>
-        
+
+        <div id="map_container" class="relative w-full h-0 pb-[75%] sm:pb-[56.25%]">
+          <!-- leaflet-sidebar-v2-->
+          <div class="sidebar collapsed !border-r-0" id="sidebar">
+            <!-- Tabs 按鈕-->
+            <div class="sidebar-tabs">
+              <!-- 第一個 ul 在上面-->
+              <ul>
+                <li><a class="justify-center items-center !flex" href="#home"><img src="dist/menu-hambuger.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="https://www.letswrite.tw/leaflet-plugins/" target="_blank"><img src="dist/web.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="https://github.com/letswritetw/letswrite-leaflet-plugins" target="_blank"><img src="dist/brand-github.svg"/></a></li>
+              </ul>
+              <!-- 第二個 ul 在下面-->
+              <ul>
+                <li><a class="justify-center items-center !flex" href="#settings"><img src="dist/setting.svg"/></a></li>
+              </ul>
+            </div>
+            <!-- Tabs 內容-->
+            <div class="sidebar-content text-gray-800">
+              <div class="sidebar-pane" id="home">
+                <h3 class="sidebar-header mb-4 bg-main">客製選單 說明<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                <p class="mb-2 font-bold text-xl">使用套件</p>
+                <ul class="list-disc pl-6">
+                  <li><a class="inline-block mb-4 text-main" href="https://github.com/turbo87/sidebar-v2/" target="_blank">sidebar-v2</a></li>
+                </ul>
+                <p class="mb-2 font-bold text-xl">其它覺得不錯的套件</p>
+                <ul class="list-disc pl-6">
+                  <li class="mb-2"><a class="text-main" href="https://github.com/yohanboniface/Leaflet.TileLegend" target="_blank">Leaflet.TileLegend</a></li>
+                  <li class="mb-2"><a class="text-main" href="https://github.com/yigityuce/Leaflet.Control.Custom" target="_blank">Leaflet.Control.Custom</a></li>
+                  <li class="mb-2"><a class="text-main" href="https://github.com/ptma/Leaflet.Legend" target="_blank">Leaflet.Legend</a></li>
+                  <li class="mb-2"><a class="text-main" href="https://github.com/maxwell-ilai/Leaflet.SidePanel" target="_blank">Leaflet.SidePanel</a></li>
+                </ul>
+              </div>
+              <div class="sidebar-pane" id="settings">
+                <h3 class="sidebar-header mb-4 bg-main">設定<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                <p>這邊可以加入使用說明</p>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-map absolute w-full !h-full" id="map"></div>
+        </div>
+          
+          
+       
+  
+    
+       
         <div id="select_area" >
             <!-- 時區 -->
             <div id="timezone_select_area">
@@ -315,5 +368,10 @@ html, body, #app, #map_container, #map {
   margin: 0%;
   padding: 0;
 }
+
+.lorem {
+            font-style: italic;
+            color: #AAA;
+        }
 
 </style>
