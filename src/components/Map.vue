@@ -4,7 +4,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import terminator from '@joergdietrich/leaflet.terminator';
-import { ref, watch, computed, onMounted} from 'vue';
+import { ref, reactive, watch, computed, onMounted} from 'vue';
 import  "../L.timezones.js";
 import moment from 'moment-timezone';
 
@@ -68,6 +68,11 @@ const company = {
     },
 };
 
+let company_checked = reactive(Object.keys(company).reduce(function(acc, key) {
+    acc[key] = true;
+    return acc;
+}, {}));
+
 // 瀏覽器開始的初始值
 let defaultZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let defaultZoneNow = new Date();
@@ -112,18 +117,19 @@ let terminatorLayer;
 let map;
 
 
-
 // 將代碼移入 onMounted 中
 onMounted(() => {
 
     // 監控日期、時間或者時區的改變
-    watch([selectedTimeZone, selectedDate, selectedMins], () => {
+    watch([selectedTimeZone, selectedDate, selectedMins, company_checked], () => {
+        
         terminatorLayer.setLatLngs(terminator({time: dateISO.value}).getLatLngs()).redraw();
+        
     });
 
 
      // 建立 leaflet 地圖
-    map = L.map('map').setView([24.7740885327886, 121.01952922069313], 2.5);
+    map = L.map('map').fitWorld().setView([24.7740885327886, 121.01952922069313], 2.5);
     terminatorLayer = terminator({time: dateISO.value}).addTo(map);
 
 
@@ -163,32 +169,38 @@ onMounted(() => {
         }
     };
 
+    let layerGroup = L.layerGroup().addTo(map);
 
-    // 建立各site圖標
-    for (let key in company) {
-        let location = company[key].location;
-        let lat = location[0];
-        let lng = location[1];
-        let time = null;
+    // 依據checkbox的變化，建立site圖標
+    watch(company_checked, () => {
+        layerGroup.clearLayers();
         
-        //檢查圖標經緯度是否在timezoneLayers下的layer中，若有的話紀錄該時區目前時間
-        for ( let layer of timezoneLayers){
-    
-            if (layer.getBounds().contains([lat,lng])){
-                let layer_name = layer.feature.properties.tz_name1st
-                time = new Date().toLocaleString("en-GB", {timeZone:layer_name});
-                break;
+        // 建立各 site 圖標
+        for (let key in company) {
+            // 在 checkbox 被打勾的才進行後續建立圖標
+            if (company_checked[key] !== true){ continue };
+            let location = company[key].location;
+            let lat = location[0];
+            let lng = location[1];
+            let time = null;
+
+            //檢查圖標經緯度是否在 timezoneLayers 下的 layer 中，若有的話紀錄該時區目前時間
+            for ( let layer of timezoneLayers){
+                if (layer.getBounds().contains([lat,lng])){
+                    let layer_name = layer.feature.properties.tz_name1st
+                    time = new Date().toLocaleString("en-GB", {timeZone:layer_name});
+                    break;
+                };
             };
+
+            let company_data = `${key} 緯度: ${lat},  經度: ${lng}  時间: ${time} `;
+
+            // 建立 marker 并加入图层组
+            let marker = L.marker([lat, lng]).bindPopup(company_data);
+            layerGroup.addLayer(marker);
         };
-        
-        
-        let company_data = `${key}<br>緯度: ${lat}, <br>經度: ${lng} <br>時間: ${time} `;
-        
-        // get_target_time
-        L.marker([lat, lng]).addTo(map).bindPopup(company_data); // .openPopup('AUHQ')
 
-    };
-
+    },{ immediate: true }); // immediate: true表示網頁初始化时立即调用
 
     //建立時區物件，並在點擊時渲染目標地時間
     L.timezones.bindPopup(function (layer) {
@@ -227,15 +239,16 @@ const incrementMins = () => {
     <div id="map_container">
 
         <div id="map_container" class="relative w-full h-0 pb-[75%] sm:pb-[56.25%]">
+            
           <!-- leaflet-sidebar-v2-->
           <div class="sidebar collapsed !border-r-0" id="sidebar">
             <!-- Tabs 按鈕-->
             <div class="sidebar-tabs">
               <!-- 第一個 ul 在上面-->
               <ul>
-                <li><a class="justify-center items-center !flex" href="#home"><img src="dist/menu-hambuger.svg"/></a></li>
-                <li><a class="justify-center items-center !flex" href="https://www.letswrite.tw/leaflet-plugins/" target="_blank"><img src="dist/web.svg"/></a></li>
-                <li><a class="justify-center items-center !flex" href="https://github.com/letswritetw/letswrite-leaflet-plugins" target="_blank"><img src="dist/brand-github.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#time_select"><img src="../assets/menu-hambuger.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#sites_show" target="_blank"><img src="dist/web.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#test2" target="_blank"><img src="dist/brand-github.svg"/></a></li>
               </ul>
               <!-- 第二個 ul 在下面-->
               <ul>
@@ -244,8 +257,68 @@ const incrementMins = () => {
             </div>
             <!-- Tabs 內容-->
             <div class="sidebar-content text-gray-800">
-              <div class="sidebar-pane" id="home">
-                <h3 class="sidebar-header mb-4 bg-main">客製選單 說明<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                
+                <!--Tab1:調整本地時區、日期、時間作為基準-->
+                <div class="sidebar-pane" id="time_select">
+                    <h3 class="sidebar-header mb-4 bg-main">會議時間<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                    <!-- 時區 -->
+                    <div id="select_area" >
+                        <div id="timezone_select_area">
+                            <h3 for="tz">本地時區</h3>
+                                <select id="tz" v-model="selectedTimeZone" >
+                                    <option value="Asia/Taipei">Asia/Taipei</option>
+                                    <option value="America/New_York">America/New_York</option>
+                                </select>
+                            </div>
+                    </div>
+                    <!-- 日期 -->
+                    <div id="select_area" >
+                        <div id="date_select_area">
+                            <h3 for="date">本地日期</h3>
+                                <input type="date" id="date" v-model="selectedDate" v-bind:min="defaultZoneDate" v-bind:max="defaultZoneNow_plus_year.toLocaleDateString('en-CA')" >
+                        </div>
+                     </div>
+                    <!-- 時間 -->
+                    <div id="select_area" >
+                        <div id="time_select_area">
+
+                            <h3 for="time" >本地時間: {{selectedTime}}</h3>
+                    
+                                <input type="range" id="time" v-model="selectedMins" min="0" max="1440" step="15" > 
+                     
+                            <div id="time_control_area" style="display: flex;">
+                                <button @click="decrementMins" style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
+                                    <img src="../assets/left.png" style="height: 2vh; width: 2vh;" >            
+                                </button>   
+                                <button @click="incrementMins " style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
+                                    <img src="../assets/right.png" style="height: 2vh; width: 2vh;">            
+                                </button>
+                            </div>                                
+                        </div>
+                    </div>
+                </div>
+              
+                <!--Tab2:生成勾選各site的核取方格-->
+              <div class="sidebar-pane" id="sites_show">
+                <h3 class="sidebar-header mb-4 bg-main">Sites顯示<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                <div v-for="(value, site) in company" :key="site">
+                    <input 
+                        type="checkbox" 
+                        :id="site" 
+                        :value="value"
+                        v-model="company_checked[site]"
+                    >
+                    <label :for="site">{{ site}}</label>
+                    <!-- {{ company_checked["AUHQ"] }}
+                    {{ company_checked.value }} -->
+                    <!-- {{ company_checked.value["AUHQ"] }} -->
+
+                    <!-- <label :for="value">{{ value }}</label> -->
+                </div>
+              </div>
+
+              <div class="sidebar-pane" id="test2">
+                <h3 class="sidebar-header mb-4 bg-main">test2<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
                 <p class="mb-2 font-bold text-xl">使用套件</p>
                 <ul class="list-disc pl-6">
                   <li><a class="inline-block mb-4 text-main" href="https://github.com/turbo87/sidebar-v2/" target="_blank">sidebar-v2</a></li>
@@ -258,53 +331,23 @@ const incrementMins = () => {
                   <li class="mb-2"><a class="text-main" href="https://github.com/maxwell-ilai/Leaflet.SidePanel" target="_blank">Leaflet.SidePanel</a></li>
                 </ul>
               </div>
+
               <div class="sidebar-pane" id="settings">
                 <h3 class="sidebar-header mb-4 bg-main">設定<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
                 <p>這邊可以加入使用說明</p>
               </div>
             </div>
           </div>
-          <div class="sidebar-map absolute w-full !h-full" id="map"></div>
-        </div>
+        <div class="sidebar-map absolute w-full !h-full" id="map"></div>
+    </div>
+        
           
           
        
   
     
        
-        <div id="select_area" >
-            <!-- 時區 -->
-            <div id="timezone_select_area">
-                <h3 for="tz">本地時區</h3>
-                    <select id="tz" v-model="selectedTimeZone" style="height: 30%;">
-                        <option value="Asia/Taipei">Asia/Taipei</option>
-                        <option value="America/New_York">America/New_York</option>
-                    </select>
-                </div>
-    
-            <!-- 日期 -->
-            <div id="date_select_area">
-                <h3 for="date">本地日期</h3>
-                    <input type="date" id="date" v-model="selectedDate" v-bind:min="defaultZoneDate" v-bind:max="defaultZoneNow_plus_year.toLocaleDateString('en-CA')" style="height: 30%;">
-            </div>
 
-            <!-- 時間 -->
-            <div id="time_select_area">
-
-                <h3 for="time" >本地時間: {{selectedTime}}</h3>
-                <div id="time_control_area" style="display: flex; align-items: center;">
-                    <button @click="decrementMins" style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
-                        <img src="../assets/left.png" style="height: 2vh; width: 2vh;" >            
-                    </button>
-                    <input type="range" id="time" v-model="selectedMins" min="0" max="1440" step="15" style="height: 30%;" >    
-                    <button @click="incrementMins " style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
-                        <img src="../assets/right.png" style="height: 2vh; width: 2vh;">            
-                    </button>
-                </div>
-            </div>
-
-
-        </div>
 
 
     </div>
@@ -315,16 +358,70 @@ const incrementMins = () => {
 
 <style >
 body {
-        padding: 0;
-        margin: 0;
-    }
-
-/* #map會依照父元素的大小決定大小，所以要設定#map上面的父元素 */
-html, body, #app, #map_container, #map {
-    height: 100%;
-    width: 100%;
+    padding: 0;
+    margin: 0;
 }
 
+/* #map會依照父元素的大小決定大小，所以要設定#map上面的父元素 */
+html, body, #app, #map_container {
+    height: 100%;
+    width: 100%;
+    /* display: flex; */
+    /* width: 100vw; */
+
+}
+
+#map{
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;  
+}
+
+
+.lorem {
+            font-style: italic;
+            color: #AAA;
+        }
+
+#select_area {
+    display: flex;               /* 使子元素沿行方向排列 */
+    flex-direction: column;      /* 子元素以列的方式排列 */
+    justify-content: space-around; /* 子元素之間的空間平均分佈，並在首尾也留有空間 */
+    box-sizing: border-box;      /* 讓 padding 和 border 不影響元素的實際寬度和高度 */
+    width: 90%;                  /* 元素佔父元素寬度的百分比 */
+    height: 30%;                 /* 元素佔父元素高度的百分比 */
+    margin: 5% auto;             /* 垂直居中元素並設定上下邊距 */
+    padding: 1em;                /* 把距離內部的子元素們設定為1em */
+    border-radius: 5px;
+    border: 1px solid black;
+}
+
+#timezone_select_area, #date_select_area, #time_select_area {
+  flex-basis: 32%;
+  /* 為 mobile view 設定，若畫面夠小則換行排列 */
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+}
+
+#time-control_area {
+    display: flex;
+    align-items: center;
+    /* if you need some space between elements */
+    justify-content: space-between;
+    margin: 0%;
+    padding: 0;
+  } 
+
+
+</style>
+
+<!-- 
 #select_area{
     /* 距離上方的距離，可以修改以符合你的需求 */
     position: absolute;
@@ -347,6 +444,7 @@ html, body, #app, #map_container, #map {
     /* 可選的 padding 和 margin 樣式，用以確保內部元件與容器的邊緣有些間距 */
     padding: 10px;
     box-sizing: border-box;
+    pointer-events:auto;
 }
 
 #timezone_select_area, #date_select_area, #time_select_area {
@@ -361,17 +459,10 @@ html, body, #app, #map_container, #map {
 }
 
 #time-control_area {
-  display: flex;
-  align-items: center;
-  /* if you need some space between elements */
-  justify-content: space-between;
-  margin: 0%;
-  padding: 0;
-}
-
-.lorem {
-            font-style: italic;
-            color: #AAA;
-        }
-
-</style>
+    display: flex;
+    align-items: center;
+    /* if you need some space between elements */
+    justify-content: space-between;
+    margin: 0%;
+    padding: 0;
+  } -->
