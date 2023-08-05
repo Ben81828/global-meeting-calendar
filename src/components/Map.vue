@@ -196,7 +196,7 @@ onMounted(() => {
             let company_data = `${key} 緯度: ${lat},  經度: ${lng}  時间: ${time} `;
 
             // 建立 marker 并加入图层组
-            let marker = L.marker([lat, lng]).bindPopup(company_data);
+            let marker = L.marker([lat, lng], {riseOnHover: true}).bindPopup(company_data);
             layerGroup.addLayer(marker);
         };
 
@@ -246,13 +246,13 @@ const incrementMins = () => {
             <div class="sidebar-tabs">
               <!-- 第一個 ul 在上面-->
               <ul>
-                <li><a class="justify-center items-center !flex" href="#time_select"><img src="../assets/menu-hambuger.svg"/></a></li>
-                <li><a class="justify-center items-center !flex" href="#sites_show" target="_blank"><img src="dist/web.svg"/></a></li>
-                <li><a class="justify-center items-center !flex" href="#test2" target="_blank"><img src="dist/brand-github.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#time_select"><img class="icon_img" src="../assets/clock.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#sites_show" target="_blank"><img class="icon_img" src="../assets/locate-marker.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#test2" target="_blank"><img class="icon_img" src="../assets/calendars-with-check-mark.svg"/></a></li>
               </ul>
               <!-- 第二個 ul 在下面-->
               <ul>
-                <li><a class="justify-center items-center !flex" href="#settings"><img src="dist/setting.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#settings"><img class="icon_img" src="../assets/setting.svg"/></a></li>
               </ul>
             </div>
             <!-- Tabs 內容-->
@@ -340,19 +340,8 @@ const incrementMins = () => {
           </div>
         <div class="sidebar-map absolute w-full !h-full" id="map"></div>
     </div>
-        
-          
-          
-       
-  
-    
-       
-
-
 
     </div>
-
-
 
 </template>
 
@@ -377,6 +366,11 @@ html, body, #app, #map_container {
     right: 0;
     bottom: 0;
     left: 0;  
+}
+
+.icon_img {
+  max-width: 100%;
+  height: auto;
 }
 
 
@@ -417,6 +411,8 @@ html, body, #app, #map_container {
     margin: 0%;
     padding: 0;
   } 
+
+
 
 
 </style>
