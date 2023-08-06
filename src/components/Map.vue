@@ -4,7 +4,7 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import terminator from '@joergdietrich/leaflet.terminator';
-import { ref, reactive, watch, computed, onMounted} from 'vue';
+import { ref, reactive, watch, computed, onMounted, nextTick} from 'vue';
 import  "../L.timezones.js";
 import moment from 'moment-timezone';
 
@@ -14,78 +14,59 @@ import "sidebar-v2/css/leaflet-sidebar.css"
 import "sidebar-v2/js/leaflet-sidebar.min.js"
 
 
-// const get_target_time = (layer) =>{
-
-//          //本地 Date物件
-//         var now_local_date = new Date();
-        
-//         //UTC與本地差異時間
-//         var local_diff_milsecond = now_local_date.getTimezoneOffset() * 60000; //getTimezoneOffset以分鐘為單位，*60*1000轉毫秒
-        
-//         //UTC Date物件 = 本地時間+本地與UTC差異時間
-//         var now_utc_date = new Date(now_local_date.getTime() + local_diff_milsecond);
-
-//         // 目標地與UTC差異時間
-//         var target_zone_time = layer.feature.properties.time_zone; // ex."UTC+09:00"
-//         var target_zone_diff = (target_zone_time.slice(3, 6) == "±00")? "0" : target_zone_time.slice(3, 6);
-
-
-//         // 目標地 Date物件
-//         var now_target_date = new Date(now_utc_date.getTime() + target_zone_diff*3600000); //time_zone_string以小時為單位，*60*60*1000轉毫秒
-        
-
-//         // 獲取目標地時間   
-//         var year = now_target_date.getFullYear();    //獲取年份
-//         var month = now_target_date.getMonth() + 1;  //獲取月份，返回的月份會比實際的小1，所以需要加1
-//         var day = now_target_date.getDate();         //獲取日期
-//         var hour = now_target_date.getHours();       //獲取小時數
-//         var minute = now_target_date.getMinutes();   //獲取分鐘數
-//         var second = now_target_date.getSeconds();   //獲取秒數
-
-//         // 把獲取的時間元素組合成日期格式
-//         var datetimeString = year + "年" + month + "月" + day + "日" + hour + "時" + minute + "分" + second + "秒";
-
-//         return datetimeString;
-//     };
-
-
 // 公司廠區位置
-const company = {
+let company = reactive({
     "AUHQ":{
-        "location": [24.7740885327886, 121.01952922069313]
+        "location": [24.7740885327886, 121.01952922069313],
+        "time":null,
+        "time_zone":null,
     },
     "AUSZ":{
-        "location": [31.336267940758084, 120.72016673028376]
+        "location": [31.336267940758084, 120.72016673028376],
+        "time":null,
+        "time_zone":null,
     },
     "AUKS":{
-        "location": [24.513111028988337, 118.1193578099503]
+        "location": [24.513111028988337, 118.1193578099503],
+        "time":null,
+        "time_zone":null,
     },
     "AUXM":{
-        "location": [31.188225825762043, 120.93693962361338]
+        "location": [31.188225825762043, 120.93693962361338],
+        "time":null,
+        "time_zone":null,
     },
     "AUST":{
-        "location": [1.360691789042172, 103.92974091157092]
+        "location": [1.360691789042172, 103.92974091157092],
+        "time":null,
+        "time_zone":null,
     },
-};
+});
 
 let company_checked = reactive(Object.keys(company).reduce(function(acc, key) {
     acc[key] = true;
     return acc;
 }, {}));
 
-// 瀏覽器開始的初始值
+
+
+// 預設時區、時間為使用者瀏覽器當前的時區
 let defaultZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let defaultZoneNow = new Date();
+// 後續使用者選擇的日曆僅顯示今天到後面一年內
 let defaultZoneNow_plus_year = new Date(); defaultZoneNow_plus_year.setFullYear(defaultZoneNow_plus_year.getFullYear() + 1);
+// 時間轉換的日期及時間
 let defaultZoneDate = defaultZoneNow.toLocaleDateString('en-CA');
 let defaultZoneTime = defaultZoneNow.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-
+// 瀏覽器側邊欄時間選單的初始值
+let iso_date_obj;                           // 後面要計算其他時區的時間，需先轉換成ISO標準時間
 let selectedTimeZone = ref(defaultZone);
 let selectedDate = ref(defaultZoneDate);
-let selectedMins = ref(parseInt(defaultZoneTime.split(":")[0])*60 + parseInt(defaultZoneTime.split(":")[1]));
+let selectedMins = ref(parseInt(defaultZoneTime.split(":")[0])*60 + parseInt(defaultZoneTime.split(":")[1])); 
 
-// 一天1440分鐘，轉為如"01:50:的格式
+
+// 一天1440分鐘，轉為如"01:50"的格式。於指定的時區日期、時間改變時觸發
 let selectedTime =  computed(() => {
     let hours = Math.floor(selectedMins.value / 60);
     let minutes = selectedMins.value % 60;
@@ -96,10 +77,10 @@ let selectedTime =  computed(() => {
     return hours + ":" + minutes;
 });
 
-// 畫night lay的計算函式
+
+// 將指定時區的時間轉成標準時間ISO，用於計算和轉換night layer及marker顯示的時間。指定的時區日期時間改變時觸發
 let dateISO = computed(() => {
     
-    // 不同時區的同時間的night lay位置不同，所以一律要轉成ISO_time
     let ISO_time = selectedDate.value + 'T' + selectedTime.value;
  
     // 创建 Moment 对象并设置时区
@@ -107,6 +88,9 @@ let dateISO = computed(() => {
 
     // 转成 ISO 字符串
     let Zone_moment_isoString = Zone_select_moment.toISOString();
+
+    // 更新iso_date_obj物件    
+    iso_date_obj = new Date(Zone_moment_isoString); //dateISO是dateString
 
     return Zone_moment_isoString;
 });
@@ -117,7 +101,30 @@ let terminatorLayer;
 let map;
 
 
-// 將代碼移入 onMounted 中
+// 調本地時區的時間按鈕
+const decrementMins = () => {
+    if (selectedMins.value > 0 && selectedMins.value % 15 !== 0) {
+        selectedMins.value = (parseInt(selectedMins.value) - (parseInt(selectedMins.value) % 15));         
+    }
+    else if (selectedMins.value > 0 && selectedMins.value % 15 === 0) {
+        selectedMins.value = (parseInt(selectedMins.value) - 15).toString();    
+    }
+};
+
+const incrementMins = () => {
+    if (selectedMins.value < 1440 && selectedMins.value % 15 !== 0) {
+        selectedMins.value = (parseInt(selectedMins.value) + 15 - (parseInt(selectedMins.value) % 15));      
+    }
+    else if (selectedMins.value < 1440 && selectedMins.value % 15 === 0) {
+        selectedMins.value = (parseInt(selectedMins.value) + 15).toString();
+    }
+
+};
+
+
+
+
+// onMounted 
 onMounted(() => {
 
     // 監控日期、時間或者時區的改變
@@ -126,7 +133,7 @@ onMounted(() => {
         terminatorLayer.setLatLngs(terminator({time: dateISO.value}).getLatLngs()).redraw();
         
     });
-
+    
 
      // 建立 leaflet 地圖
     map = L.map('map').fitWorld().setView([24.7740885327886, 121.01952922069313], 2.5);
@@ -171,64 +178,61 @@ onMounted(() => {
 
     let layerGroup = L.layerGroup().addTo(map);
 
+    
     // 依據checkbox的變化，建立site圖標
-    watch(company_checked, () => {
+    watch([dateISO, company_checked], () => {
         layerGroup.clearLayers();
-        
-        // 建立各 site 圖標
+                
+        // 建立各 site 圖標時，會從company中取出座標，並依座標檢查它在timezoneLayers中所在時區，用iso_date_obj去計算其時間，並將時間放回company中
         for (let key in company) {
             // 在 checkbox 被打勾的才進行後續建立圖標
             if (company_checked[key] !== true){ continue };
+            
             let location = company[key].location;
+            
+            // 計算在哪個layer
             let lat = location[0];
             let lng = location[1];
-            let time = null;
 
-            //檢查圖標經緯度是否在 timezoneLayers 下的 layer 中，若有的話紀錄該時區目前時間
+            // 待計算的時區和時間
+            let layer_name;
+            let time;
+            
+            //檢查圖標經緯度是否在 timezoneLayers 下的 layer 中，若有的話，將指定時間轉換的ISO時間，轉成該timezone的時間
             for ( let layer of timezoneLayers){
                 if (layer.getBounds().contains([lat,lng])){
-                    let layer_name = layer.feature.properties.tz_name1st
-                    time = new Date().toLocaleString("en-GB", {timeZone:layer_name});
+                    layer_name = layer.feature.properties.tz_name1st
+                    time = iso_date_obj.toLocaleString("en-GB", {timeZone:layer_name});                  
+                    company[key].time = time;
+                    company[key].time_zone = layer_name;
+                    
+                                                    
                     break;
                 };
             };
 
-            let company_data = `${key} 緯度: ${lat},  經度: ${lng}  時间: ${time} `;
+            let company_data = `${key} <br>時间: ${time}`;
 
             // 建立 marker 并加入图层组
             let marker = L.marker([lat, lng], {riseOnHover: true}).bindPopup(company_data);
             layerGroup.addLayer(marker);
         };
+        
 
     },{ immediate: true }); // immediate: true表示網頁初始化时立即调用
 
+
+
     //建立時區物件，並在點擊時渲染目標地時間
     L.timezones.bindPopup(function (layer) {
-    return new Date().toLocaleString("en-GB", {timeZone:layer.feature.properties.tz_name1st, timeZoneName:"short"})
+    return iso_date_obj.toLocaleString("en-GB",{timeZone:layer.feature.properties.tz_name1st, timeZoneName:"short"})
 }).addTo(map);
 
 
 
 });
 
-const decrementMins = () => {
-    if (selectedMins.value > 0 && selectedMins.value % 15 !== 0) {
-        selectedMins.value = (parseInt(selectedMins.value) - (parseInt(selectedMins.value) % 15));         
-    }
-    else if (selectedMins.value > 0 && selectedMins.value % 15 === 0) {
-        selectedMins.value = (parseInt(selectedMins.value) - 15).toString();    
-    }
-};
 
-const incrementMins = () => {
-    if (selectedMins.value < 1440 && selectedMins.value % 15 !== 0) {
-        selectedMins.value = (parseInt(selectedMins.value) + 15 - (parseInt(selectedMins.value) % 15));      
-    }
-    else if (selectedMins.value < 1440 && selectedMins.value % 15 === 0) {
-        selectedMins.value = (parseInt(selectedMins.value) + 15).toString();
-    }
-
-};
 
 
 </script>
@@ -248,7 +252,7 @@ const incrementMins = () => {
               <ul>
                 <li><a class="justify-center items-center !flex" href="#time_select"><img class="icon_img" src="../assets/clock.svg"/></a></li>
                 <li><a class="justify-center items-center !flex" href="#sites_show" target="_blank"><img class="icon_img" src="../assets/locate-marker.svg"/></a></li>
-                <li><a class="justify-center items-center !flex" href="#test2" target="_blank"><img class="icon_img" src="../assets/calendars-with-check-mark.svg"/></a></li>
+                <li><a class="justify-center items-center !flex" href="#sites_time" target="_blank"><img class="icon_img" src="../assets/calendars-with-check-mark.svg"/></a></li>
               </ul>
               <!-- 第二個 ul 在下面-->
               <ul>
@@ -308,28 +312,22 @@ const incrementMins = () => {
                         :value="value"
                         v-model="company_checked[site]"
                     >
-                    <label :for="site">{{ site}}</label>
-                    <!-- {{ company_checked["AUHQ"] }}
-                    {{ company_checked.value }} -->
-                    <!-- {{ company_checked.value["AUHQ"] }} -->
-
-                    <!-- <label :for="value">{{ value }}</label> -->
+                    <label :for="site">{{site}}</label>
+                    
+                  
                 </div>
               </div>
 
-              <div class="sidebar-pane" id="test2">
-                <h3 class="sidebar-header mb-4 bg-main">test2<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
-                <p class="mb-2 font-bold text-xl">使用套件</p>
-                <ul class="list-disc pl-6">
-                  <li><a class="inline-block mb-4 text-main" href="https://github.com/turbo87/sidebar-v2/" target="_blank">sidebar-v2</a></li>
-                </ul>
-                <p class="mb-2 font-bold text-xl">其它覺得不錯的套件</p>
-                <ul class="list-disc pl-6">
-                  <li class="mb-2"><a class="text-main" href="https://github.com/yohanboniface/Leaflet.TileLegend" target="_blank">Leaflet.TileLegend</a></li>
-                  <li class="mb-2"><a class="text-main" href="https://github.com/yigityuce/Leaflet.Control.Custom" target="_blank">Leaflet.Control.Custom</a></li>
-                  <li class="mb-2"><a class="text-main" href="https://github.com/ptma/Leaflet.Legend" target="_blank">Leaflet.Legend</a></li>
-                  <li class="mb-2"><a class="text-main" href="https://github.com/maxwell-ilai/Leaflet.SidePanel" target="_blank">Leaflet.SidePanel</a></li>
-                </ul>
+              <div class="sidebar-pane" id="sites_time">
+                <h3 class="sidebar-header mb-4 bg-main">Sites 時間<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
+                <div v-for="(value, site) in company" :key="site" >
+                    <div v-if="company_checked[site]"   class="site_card_area" >
+                 
+                        <label v-text="site" style="font-weight: bold;"></label>
+                        <br><label v-text="'時區名稱: '+value.time_zone"></label> 
+                        <br><label v-text="'時區時間: '+value.time"></label> 
+                    </div>
+                </div>
               </div>
 
               <div class="sidebar-pane" id="settings">
@@ -413,6 +411,13 @@ html, body, #app, #map_container {
   } 
 
 
+.site_card_area {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: left; 
+    border-radius: 5px;
+    border: 1px solid black;
+}
 
 
 </style>
