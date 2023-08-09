@@ -13,146 +13,40 @@ import "sidebar-v2/js/leaflet-sidebar.js"
 import "sidebar-v2/css/leaflet-sidebar.css"
 import "sidebar-v2/js/leaflet-sidebar.min.js"
 
-//用來檢查座標是否落在時區的多邊形內，以確認落在哪個時區
-import * as turf from '@turf/turf'
 
 // 公司廠區位置
 let company = reactive({
-    "友達_ATC":{
-        "location": [24.774162306624227, 121.01954364063755],
+    "AUHQ":{
+        "location": [24.7740885327886, 121.01952922069313],
         "time":null,
         "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
     },
-    "友達_GRC":{
-        "location": [24.777049544180894, 121.00818840488583],
+    "AUSZ":{
+        "location": [31.336267940758084, 120.72016673028376],
         "time":null,
         "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
     },
-    "友達_昆山":{
-        "location": [31.3886250399072, 121.08193142979769],
+    "AUKS":{
+        "location": [24.513111028988337, 118.1193578099503],
         "time":null,
         "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
     },
-    "友達_蘇州":{
-        "location": [31.333195291328046, 120.70341679091685],
+    "AUXM":{
+        "location": [31.188225825762043, 120.93693962361338],
         "time":null,
         "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
     },
-    "友達_廈門":{
-        "location": [22.66143158161194, 114.07112822179445],
+    "AUST":{
+        "location": [1.360691789042172, 103.92974091157092],
         "time":null,
         "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
     },
-    "友達_東京":{
-        "location": [35.651338998648264, 139.74751899807922],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_大阪":{
-        "location": [34.73360259630881, 135.49247715582405],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_韓國":{
-        "location": [37.293959032600405, 127.0493198502576],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_新加坡":{
-        "location": [1.3607346922837744, 103.92969799623016],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_底特律":{
-        "location": [42.468266506783976, -83.41422311520508],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_德國":{
-        "location": [48.6895943965471, 9.003747399999998],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_荷蘭":{
-        "location": [52.39640932035231, 4.850351413494435],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_斯洛伐克":{
-        "location": [48.886123822116545, 17.9956080491438],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-
 });
 
 let company_checked = reactive(Object.keys(company).reduce(function(acc, key) {
     acc[key] = true;
     return acc;
 }, {}));
-
-let all_company_checked = ref(true);
-
-let all_company_select = computed(() => {
- 
-    for(let site in company_checked){
-        company_checked[site]=all_company_checked.value;
-    }
-    return all_company_checked.value;
-});
-
 
 let uniqueTimeZoneList = computed(() => {
     let uniqueList = [Intl.DateTimeFormat().resolvedOptions().timeZone];
@@ -252,25 +146,17 @@ onMounted(() => {
     
 
      // 建立 leaflet 地圖
-    map = L.map('map').fitWorld().setView([24.7740885327886, 121.01952922069313],3);
+    map = L.map('map').fitWorld().setView([24.7740885327886, 121.01952922069313], 2.5);
     terminatorLayer = terminator({time: dateISO.value}).addTo(map);
 
 
     // https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png   // 黑底地圖
     L.tileLayer(' https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        minZoom: 3, // 這裡設定Z最大為5
+        minZoom: 2, // 這裡設定Z最大為5
         maxZoom: 3, // 這裡設定Z最大為5
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     
-    //建立時區物件，並在點擊時渲染目標地時間
-    L.timezones.bindPopup(function (layer) {
-        let timezone = layer.feature.properties.tz_name1st;
-        return timezone
-        // return ( timezone, iso_date_obj.toLocaleString("en-GB",{timeZone:layer.feature.properties.tz_name1st, timeZoneName:"short"}))
-    }).addTo(map);
-
-
     // sidebar
     const sidebar = L.control.sidebar('sidebar').addTo(map);
     
@@ -300,12 +186,13 @@ onMounted(() => {
         }
     };
 
-   
+    let layerGroup = L.layerGroup().addTo(map);
+
     
     // 依據checkbox的變化，建立site圖標
-    let layerGroup = L.layerGroup().addTo(map);
     watch([dateISO, company_checked], () => {
-        layerGroup.clearLayers();                
+        layerGroup.clearLayers();
+                
         // 建立各 site 圖標時，會從company中取出座標，並依座標檢查它在timezoneLayers中所在時區，用iso_date_obj去計算其時間，並將時間放回company中
         for (let key in company) {
             // 在 checkbox 被打勾的才進行後續建立圖標
@@ -320,81 +207,25 @@ onMounted(() => {
             // 待計算的時區和時間
             let layer_name;
             let time;
-            let color;
-            let company_data;
-
-                    
+            
             //檢查圖標經緯度是否在 timezoneLayers 下的 layer 中，若有的話，將指定時間轉換的ISO時間，轉成該timezone的時間
             for ( let layer of timezoneLayers){
-
-                //將當前的layer轉為GeoJSON
-                let layerGeoJSON = layer.toGeoJSON();
-                
-                //創建一個表示你測試的點的GeoJSON
-                let point = turf.point([lng, lat]);
-
-                if (turf.booleanPointInPolygon(point,layerGeoJSON)){
+                if (layer.getBounds().contains([lat,lng])){
                     layer_name = layer.feature.properties.tz_name1st
-                    // 用toLocaleString轉出layer的時間
-                    //toLocaleString會變day/month/year，這邊改成month/day/year，後面放Date()內時才不會出錯
-                    let parts = iso_date_obj.toLocaleString("en-GB", {timeZone:layer_name}).split("/"); 
-                    time = `${parts[1]}/${parts[0]}/${parts[2]}`;               
+                    time = iso_date_obj.toLocaleString("en-GB", {timeZone:layer_name});                  
                     company[key].time = time;
                     company[key].time_zone = layer_name;
                     
-                    // 判斷是否在工作時間或黃金時間
-                    let layer_date_obj = new Date(time);
-                    let hours = layer_date_obj.getHours(); // 获取小时和分钟
-                    let minutes = layer_date_obj.getMinutes(); // 获取小时和分钟
-
-                    // 转换为分钟的总量，更便于比较
-                    let timeInMinutes = hours * 60 + minutes;
-
-                    // 把work time和gold time也转换为分钟的总量
-                    let work_interval = company[key].work_hour
-                    let work_start = parseInt(work_interval[0].split(":")[0]) * 60 + parseInt(work_interval[0].split(":")[1]);
-                    let work_end = parseInt(work_interval[1].split(":")[0]) * 60 + parseInt(work_interval[1].split(":")[1]);
-
-                    // 把work time和gold time也转换为分钟的总量
-                    let gold_interval = company[key].gold_hour
-                    let gold_start = parseInt(gold_interval[0].split(":")[0]) * 60 + parseInt(gold_interval[0].split(":")[1]);
-                    let gold_end = parseInt(gold_interval[1].split(":")[0]) * 60 + parseInt(gold_interval[1].split(":")[1]);
-
-                    // 把work time和rest time也转换为分钟的总量
-                    let rest_interval = company[key].rest_hour
-                    let rest_start = parseInt(rest_interval[0].split(":")[0]) * 60 + parseInt(rest_interval[0].split(":")[1]);
-                    let rest_end = parseInt(rest_interval[1].split(":")[0]) * 60 + parseInt(rest_interval[1].split(":")[1]);
-
-                    // work_time內為綠色、gold_time內為黃色、red_time內為紅色、rest_time內為黑色
-                    if (timeInMinutes >= work_start && timeInMinutes < work_end) {
-                        color="green";
-                        company[key].color=color;
-                        } 
-                    else if(timeInMinutes >= gold_start && timeInMinutes < gold_end){
-                        color="yellow";
-                            company[key].color=color;
-                        }
-                    else if(timeInMinutes >= rest_start || timeInMinutes < rest_end){
-                        color="black";
-                            company[key].color=color;
-                        }
-                    else{
-                        color="red";
-                        company[key].color=color;
-                        }
-                        
-                    company_data = `${key} <br>時區:${layer_name}<br>時間: ${layer_date_obj.getFullYear()}年${layer_date_obj.getMonth()}月${layer_date_obj.getDay()}日 ${hours}:${minutes}`
-             
+                                                    
                     break;
                 };
-            };            
+            };
 
-            // 建立 circle 并加入图层组
-            
-            let circleMarker = L.circleMarker([lat, lng], {riseOnHover: true, color: color}).bindPopup(company_data);
-            layerGroup.addLayer(circleMarker);
+            let company_data = `${key} <br>時间: ${time}`;
 
-        
+            // 建立 marker 并加入图层组
+            let marker = L.marker([lat, lng], {riseOnHover: true}).bindPopup(company_data);
+            layerGroup.addLayer(marker);
         };
         
 
@@ -402,7 +233,16 @@ onMounted(() => {
 
 
 
+    //建立時區物件，並在點擊時渲染目標地時間
+    L.timezones.bindPopup(function (layer) {
+    return iso_date_obj.toLocaleString("en-GB",{timeZone:layer.feature.properties.tz_name1st, timeZoneName:"short"})
+}).addTo(map);
+
+
+
 });
+
+
 
 
 </script>
@@ -454,7 +294,7 @@ onMounted(() => {
                      </div>
                     <!-- 時間 -->
                     <div id="select_area" >
-                        <div class="time_select_area">
+                        <div id="time_select_area">
 
                             <h3 for="time" >本地時間: {{selectedTime}}</h3>
                     
@@ -475,11 +315,7 @@ onMounted(() => {
                 <!--Tab2:生成勾選各site的核取方格-->
               <div class="sidebar-pane" id="sites_show">
                 <h3 class="sidebar-header mb-4 bg-main">Sites顯示<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
-                <input type="checkbox" :value="all_company_checked" v-model="all_company_checked" >
-                    <label v-if="all_company_select===true">取消全選</label>
-                    <label v-else>全選</label>
                 <div v-for="(value, site) in company" :key="site">
-                    
                     <input 
                         type="checkbox" 
                         :id="site" 
@@ -493,26 +329,11 @@ onMounted(() => {
               </div>
 
               <div class="sidebar-pane" id="sites_time">
-                <h3 class="sidebar-header mb-4 bg-main">各 Sites 時間<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
-                <div class="time_select_area">
-
-                    <h3 for="time" >本地時間: {{selectedTime}}</h3>
-
-                        <input type="range" id="time" v-model="selectedMins" min="0" max="1440" step="15" > 
-
-                    <div id="time_control_area" style="display: flex;">
-                        <button @click="decrementMins" style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
-                            <img src="../assets/left.png" style="height: 2vh; width: 2vh;" >            
-                        </button>   
-                        <button @click="incrementMins " style="height: 2vh; width: 2vh; display: flex; align-items: center; justify-content: center;">
-                            <img src="../assets/right.png" style="height: 2vh; width: 2vh;">            
-                        </button>
-                    </div>                                
-                </div>
+                <h3 class="sidebar-header mb-4 bg-main">Sites 時間<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h3>
                 <div v-for="(value, site) in company" :key="site" >
                     <div v-if="company_checked[site]"   class="site_card_area" >
                  
-                        <label v-text="site" style="font-weight: bold;" :style="{ color: company[site].color, textShadow: '-0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black', fontSize: '20px' }"></label>
+                        <label v-text="site" style="font-weight: bold;"></label>
                         <br><label v-text="'時區名稱: '+value.time_zone"></label> 
                         <br><label v-text="'時區時間: '+value.time"></label> 
                     </div>
@@ -579,7 +400,7 @@ html, body, #app, #map_container {
     border: 1px solid black;
 }
 
-#timezone_select_area, #date_select_area, .time_select_area {
+#timezone_select_area, #date_select_area, #time_select_area {
   flex-basis: 32%;
   /* 為 mobile view 設定，若畫面夠小則換行排列 */
   margin-bottom: 15px;
