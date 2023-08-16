@@ -1,8 +1,7 @@
 {
-  "name": "calendar",
-  "private": true,
+  "name": "vue-project",
   "version": "0.0.0",
-  "type": "module",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,17 +10,18 @@
   "dependencies": {
     "@joergdietrich/leaflet.terminator": "^1.1.0",
     "@turf/turf": "^6.5.0",
-    "autoprefixer": "^10.4.14",
     "leaflet": "^1.9.4",
-    "leaflet-sidebar": "^0.2.4",
     "moment-timezone": "^0.5.43",
-    "postcss": "^8.4.27",
     "sidebar-v2": "^0.4.0",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "vuestic-ui": "^1.7.4",
+    "vuex": "^4.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",
+    "autoprefixer": "^10.4.15",
+    "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
-    "vite": "^4.4.5"
+    "vite": "^4.4.6"
   }
 }

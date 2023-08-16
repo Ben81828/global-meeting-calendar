@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .black {
+      @apply bg-gradient-to-r from-blue-900 to-black;
+      & > * {
+        @apply text-white;
+      }
+    }
+  };
+

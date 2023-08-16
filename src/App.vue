@@ -1,27 +1,13 @@
-<!-- <script setup>
-import Map from './components/Map.vue'
-</script>
-
-<template>
-  <div id="app">
-        <Map />
-  </div>
-  
-</template>
-
-<style >
-
-</style>
-------------------------------- -->
 <script setup>
-import Map from "./components/Map.vue";
+import Layout from "./components/Layout.vue"
 </script>
 
 <template>
-  <Map />
+
+<Layout></Layout>
+ 
 </template>
 
-
-<style >
+<style scoped>
 
 </style>
