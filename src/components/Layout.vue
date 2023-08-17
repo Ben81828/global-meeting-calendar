@@ -18,7 +18,8 @@ import Map from "./Map.vue"
         <Navbar></Navbar>
 
         <div class="p-6 bg-gray-100 mb-0 z-0 ">
-            <Map></Map>
+            <router-view></router-view>
+            <!-- <Map></Map> -->
         </div>
 
         <!-- <Footer></Footer> -->

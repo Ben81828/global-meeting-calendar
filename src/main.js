@@ -4,4 +4,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 
 
-createApp(App).mount('#app')
+import {route} from './router' // 載入配置檔
+
+
+createApp(App).use(route).mount('#app')
