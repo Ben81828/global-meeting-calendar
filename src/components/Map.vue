@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, reactive, watch, computed, onMounted, defineProps} from 'vue';
+import { ref, reactive, watch, computed, onMounted, onUpdated, onBeforeUnmount} from 'vue';
 
 // leaflet
 import L from "leaflet";
@@ -22,137 +22,20 @@ import moment from 'moment-timezone';
 //用來檢查座標是否落在時區的多邊形內，以確認落在哪個時區
 import * as turf from '@turf/turf'
 
+// store
+import { useStore } from 'vuex';
+const store = useStore();
 
 
 // 公司廠區位置
-let company = reactive({
-    "友達_ATC":{
-        "location": [24.774162306624227, 121.01954364063755],
-        "year":null,
-        "month":null,
-        "day":null,
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_GRC":{
-        "location": [24.777049544180894, 121.00818840488583],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_昆山":{
-        "location": [31.3886250399072, 121.08193142979769],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_蘇州":{
-        "location": [31.333195291328046, 120.70341679091685],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_廈門":{
-        "location": [22.66143158161194, 114.07112822179445],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_東京":{
-        "location": [35.651338998648264, 139.74751899807922],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_大阪":{
-        "location": [34.73360259630881, 135.49247715582405],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_韓國":{
-        "location": [37.293959032600405, 127.0493198502576],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_新加坡":{
-        "location": [1.3607346922837744, 103.92969799623016],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "17:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_底特律":{
-        "location": [42.468266506783976, -83.41422311520508],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_德國":{
-        "location": [48.6895943965471, 9.003747399999998],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_荷蘭":{
-        "location": [52.39640932035231, 4.850351413494435],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-    "友達_斯洛伐克":{
-        "location": [48.886123822116545, 17.9956080491438],
-        "time":null,
-        "time_zone":null,
-        "work_hour":[ "08:00", "15:00"],
-        "gold_hour":[ "19:00", "21:00"],
-        "rest_hour":[ "23:00", "07:00"],
-        "color":null,
-    },
-
-});
+let company = reactive(store.state.company);
 
 let company_checked = reactive(Object.keys(company).reduce(function(acc, key) {
     acc[key] = true;
     return acc;
 }, {}));
+
+
 
 let all_company_checked = ref(true);
 
@@ -189,7 +72,7 @@ let defaultZoneDate = defaultZoneNow.toLocaleDateString('en-CA');
 let defaultZoneTime = defaultZoneNow.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second:  '2-digit'});
 
 // 瀏覽器側邊欄時間選單的初始值
-let iso_date_obj;                           // 後面要計算其他時區的時間，需先轉換成ISO標準時間
+let date_obj;                           
 let selectedTimeZone = ref(defaultZone);
 let selectedDate = ref(defaultZoneDate);
 // let selectedMins= ref(parseInt(defaultZoneTime.split(":")[0])*60 + parseInt(defaultZoneTime.split(":")[1])); 
@@ -217,20 +100,22 @@ setInterval(function() {
     };
 }, 1000);  // 這裡的 1000 是毫秒，所以 1000 毫秒就是 1 秒
 
+// 選定時區、時間的Moment對象
+let Zone_select_moment;
 
 // 將指定時區的時間轉成標準時間ISO，用於計算和轉換night layer及marker顯示的時間。指定的時區日期時間改變時觸發
-let dateISO = computed(() => {
+let date_ISO_str = computed(() => {
     
-    let ISO_time = selectedDate.value + 'T' + selectedTime.value;
+    let selected_time_format = selectedDate.value + 'T' + selectedTime.value;
  
     // 创建 Moment 对象并设置时区
-    let Zone_select_moment = moment.tz( ISO_time, selectedTimeZone.value);
-
+    Zone_select_moment = moment.tz( selected_time_format, selectedTimeZone.value);
+    
     // 转成 ISO 字符串
     let Zone_moment_isoString = Zone_select_moment.toISOString();
 
-    // 更新iso_date_obj物件    
-    iso_date_obj = new Date(Zone_moment_isoString); //dateISO是dateString
+    // 更新date_obj物件    
+    date_obj = new Date(Zone_moment_isoString); //date_ISO_str是dateString
 
     return Zone_moment_isoString;
 });
@@ -280,7 +165,7 @@ onMounted(() => {
 
     // 監控日期、時間或者時區的改變
     watch([selectedTimeZone, selectedDate, selectedSeconds, company_checked], () => {
-        terminatorLayer.setLatLngs(terminator({time: dateISO.value}).getLatLngs()).redraw();
+        terminatorLayer.setLatLngs(terminator({time: date_ISO_str.value}).getLatLngs()).redraw();
     });
     
 
@@ -296,7 +181,7 @@ onMounted(() => {
     .fitWorld()
     // .setView([0, 0], 0);
     .setView([45,5],2);
-    terminatorLayer = terminator({time: dateISO.value}).addTo(map);
+    terminatorLayer = terminator({time: date_ISO_str.value}).addTo(map);
 
     // tile setting
     // https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png //openstreetmap
@@ -315,7 +200,6 @@ onMounted(() => {
     L.timezones.bindPopup(function (layer) {
         let timezone = layer.feature.properties.tz_name1st;
         return timezone
-        // return ( timezone, iso_date_obj.toLocaleString("en-GB",{timeZone:layer.feature.properties.tz_name1st, timeZoneName:"short"}))
     }).addTo(map);
 
     // // sidebar
@@ -352,10 +236,10 @@ onMounted(() => {
     
     // 依據checkbox的變化，建立site圖標
     let layerGroup = L.layerGroup().addTo(map);
-    watch([dateISO, company_checked], () => {
+    watch([date_ISO_str, company_checked], () => {
 
         layerGroup.clearLayers();                
-        // 建立各 site 圖標時，會從company中取出座標，並依座標檢查它在timezoneLayers中所在時區，用iso_date_obj去計算其時間，並將時間放回company中
+        // 建立各 site 圖標時，會從company中取出座標，並依座標檢查它在timezoneLayers中所在時區，用date_obj去計算其時間，並將時間放回company中
         for (let key in company) {
             // 在 checkbox 被打勾的才進行後續建立圖標
             if (company_checked[key] !== true){ continue };
@@ -387,7 +271,7 @@ onMounted(() => {
                     layer_name = layer.feature.properties.tz_name1st
                     // 用toLocaleString轉出layer的時間
                     //toLocaleString會變day/month/year，這邊改成month/day/year，後面放Date()內時才不會出錯
-                    let parts = iso_date_obj.toLocaleString("en-GB", {timeZone:layer_name}).split("/");
+                    let parts = date_obj.toLocaleString("en-GB", {timeZone:layer_name}).split("/");
                     let layer_date_obj = new Date(`${parts[1]}/${parts[0]}/${parts[2]}`);
                     year = parts[2].split(',')[0];
                     month = parts[1];
@@ -469,7 +353,17 @@ onMounted(() => {
 
 });
 
+// onUpdated(() => {
+//     store.commit('update_company_data', company);
+//     console.log(store.state.company);
+// });
 
+onBeforeUnmount(() => {
+    store.commit('update_company_data', company);
+    store.commit('update_selected_company', company_checked);   
+    store.commit('update_tz_moment', Zone_select_moment);
+    store.commit('update_selected_zone', selectedTimeZone.value);
+});
 </script>
 
 

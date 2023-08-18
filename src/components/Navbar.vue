@@ -7,7 +7,7 @@
 
                 <!-- mobile hamburger -->
                 <div class="inline-block lg:hidden flex items-center mr-4">
-                  <button class="hover:text-blue-500 hover:border-white focus:outline-none navbar-burger" @click="toggleSidebar()">
+                  <button class="hover:text-blue-500 hover:border-white focus:outline-none navbar-burger" @click="toggleSidebar">
                     <svg class="h-5 w-5" v-bind:style="{ fill: 'black' }" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Menu</title><path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/></svg>
                   </button>
                 </div>
@@ -42,23 +42,16 @@
     </div>
 </template>
 
-<script>
-// import { mapState } from 'vuex'
+<script setup>
+import { useStore } from 'vuex';
+const store = useStore();
 
-export default {
-    name: 'Navbar',
-    // computed: {
-    //     ...mapState(['sideBarOpen'])
-    // },
-    data() {
-        return {
-            dropDownOpen: false
-        }
-    },
-    methods: {
-        toggleSidebar() {
-            this.$store.dispatch('toggleSidebar')
-        }
-    }
-}
+let toggle_state = store.state.is_toggle_open;
+
+const toggleSidebar = () => {
+  toggle_state = !toggle_state;
+  store.commit('update_toggle_state', toggle_state);
+};
+
+
 </script>
