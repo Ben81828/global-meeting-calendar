@@ -483,7 +483,7 @@ onBeforeUnmount(() => {
 
 
 
-<style >
+<style scoped>
 
 #map{
     position: absolute;

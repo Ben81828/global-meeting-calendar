@@ -23,7 +23,7 @@ export const route = createRouter({
             name: "recommand", 
             component: Recommand,
             // component: () => import("../views/ResumeSearch.vue"),
-            props: (route) => route.params
+            // props: (route) => route.params
           },         
   ]
 });
