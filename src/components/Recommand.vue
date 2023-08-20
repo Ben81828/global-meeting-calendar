@@ -253,6 +253,7 @@ console.log(recommend_time_list)
   </div>
 
 <div class="bg-white border rounded-lg p-6">
+  <div class="text-left text-[#005087]" v-text="'Recommand'"></div>
   <div v-for="(time, idx) in recommend_time_list" :key="idx" >
     <div :class="'bg-green'+' border rounded-lg p-1 pt-5 m-1 mb-2'" >
       
