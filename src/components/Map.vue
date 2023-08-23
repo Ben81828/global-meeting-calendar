@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, reactive, watch, computed, onMounted, onUpdated, onBeforeUnmount} from 'vue';
+import { ref, reactive, watch, computed, onMounted, onBeforeUnmount} from 'vue';
 
 // leaflet
 import L from "leaflet";
@@ -10,12 +10,6 @@ import "leaflet/dist/leaflet.css";
 import terminator from '@joergdietrich/leaflet.terminator';
 import  "../L.timezones.js";
 
-
-// leaflet sidebar
-// import "sidebar-v2/js/leaflet-sidebar.js"
-// import "sidebar-v2/css/leaflet-sidebar.css"
-// import "sidebar-v2/js/leaflet-sidebar.min.js"
-
 // timezone
 import moment from 'moment-timezone';
 
@@ -24,32 +18,34 @@ import * as turf from '@turf/turf'
 
 // store
 import { useStore } from 'vuex';
-const store = useStore();
+const store = useStore(); // store實體
 
 
-// 公司廠區位置
-let company = reactive(store.state.company);
+// 公司資料
+let company = computed(() => {return store.state.company}).value;
 
-let company_checked = reactive(Object.keys(company).reduce(function(acc, key) {
-    acc[key] = true;
-    return acc;
-}, {}));
+// 物件: 已被選的公司。各公司按鈕value會on這個物件key所對應的值(true或false)
+let company_checked = computed(() => {return store.state.selected_company}).value;
 
 
 
+// bool: 此變數為"公司全選按鈕"on的值，按鈕沒被勾選時會變false
 let all_company_checked = ref(true);
 
+// 此變數用來在all_company_checked有變化時，改變company_checked所有value，並渲染"公司全選按鈕"的文字。
+// all_company_checked 為true的文字為"全選"，false為"取消全選" 
 let all_company_select = computed(() => {
  
     for(let site in company_checked){
-        company_checked[site]=all_company_checked.value;
+        company_checked[site]=all_company_checked.value;       
     }
     return all_company_checked.value;
 });
 
-
+// 串列: 因company物件內會有時區資料，此變數整理出唯一時區的串列，並用來渲染"時區下拉選單"
 let uniqueTimeZoneList = computed(() => {
-    let uniqueList = [Intl.DateTimeFormat().resolvedOptions().timeZone];
+
+    let uniqueList = [Intl.DateTimeFormat().resolvedOptions().timeZone]; //先讀取使用者裝置的時區，當作預設的第一個元素
  
     for (let key in company){ 
        
@@ -61,19 +57,20 @@ let uniqueTimeZoneList = computed(() => {
     return uniqueList
 });
 
-
 // 預設時區、時間為使用者瀏覽器當前的時區
 let defaultZone = uniqueTimeZoneList.value[0];
 let defaultZoneNow = new Date();
 // 後續使用者選擇的日曆僅顯示今天到後面一年內
 let defaultZoneNow_plus_year = new Date(); defaultZoneNow_plus_year.setFullYear(defaultZoneNow_plus_year.getFullYear() + 1);
-// 時間轉換的日期及時間
-let defaultZoneDate = defaultZoneNow.toLocaleDateString('en-CA');
-let defaultZoneTime = defaultZoneNow.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second:  '2-digit'});
+// 用漂亮一點的格式，讀取日期、時間，用來做後續解析、轉換
+let defaultZoneDate = defaultZoneNow.toLocaleDateString('en-CA'); //2023-08-22
+let defaultZoneTime = defaultZoneNow.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second:  '2-digit'}); // ex.16:47:11
 
-// 瀏覽器側邊欄時間選單的初始值
+
+// 瀏覽器的"時間選單"初始值
 let date_obj;                           
 let selectedTimeZone = ref(defaultZone);
+
 let selectedDate = ref(defaultZoneDate);
 // let selectedMins= ref(parseInt(defaultZoneTime.split(":")[0])*60 + parseInt(defaultZoneTime.split(":")[1])); 
 let selectedSeconds = ref(parseInt(defaultZoneTime.split(":")[0])*3600 + parseInt(defaultZoneTime.split(":")[1])*60 + parseInt(defaultZoneTime.split(":")[2])); 
@@ -93,7 +90,7 @@ let selectedTime =  computed(() => {
 
 });
 
-// 計時加秒
+// "計時器"加秒
 setInterval(function() {
     if (selectedSeconds.value < 86400){
         selectedSeconds.value++;
@@ -370,9 +367,8 @@ onBeforeUnmount(() => {
 <template>
 <!-- Map.vue -->
 <div class=" w-full flex flex-col md:flex-row md:h-[750px] lg:flex-row">
-    <!-- Map Section -->
-    <!-- <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 xl:mb-0  w-[1000px] h-[550px] md:w-full md:h-full lg:w-2/3"> -->
-    <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 xl:mb-0  w-full h-[550px] md:w-full md:h-full lg:w-2/3">
+    <!-- Map Section -->    
+    <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 xl:mb-0  w-full h-[550px] md:w-1/2 md:h-full lg:w-2/3">
         <div id="map_container" class="relative z-0 flex-grow w-full md:w-full lg:w-2/3"> 
         <!-- <div id="map_container" class="relative h-[700px] w-[1000px] z-0">  -->
             <div id="map" class="lg:w-full"></div>
@@ -412,7 +408,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Site Office Section -->
-    <div class="bg-white border rounded-lg p-6 mb-6 xl:mb-0 w-full md:h-full md:overflow-auto lg:w-1/3">  
+    <div class="bg-white border rounded-lg p-6 mb-6 xl:mb-0 w-full md:h-full md:w-1/2 md:overflow-auto lg:w-1/3">  
         <div class="flex justify-center items-center">
              <button @click="isShow = true" class="font-extrabold text-[#253fae] bg-transparent hover:bg-[#FAF4FF] border rounded-lg p-2">
                 + Eddit office

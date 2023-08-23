@@ -1,5 +1,5 @@
 <template>
-    <div class="sticky top-0 z-30">
+    <div class="sticky top-0 z-[60]">
             <div class="w-full h-20 px-6 bg-gray-100 border-b flex items-center justify-between">
 
               <!-- left navbar -->

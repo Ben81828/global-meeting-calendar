@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import moment from 'moment-timezone'; // timezone
 
@@ -82,17 +82,35 @@ for (let key in company) {
 
 };
 
+// ["0","","1","",.....]
 let time_stamps = Array.from({length: 48}, (_, i) => i % 2 === 0 && i < 20 ? "0" + (i/2).toString() : i % 2 === 0 && i >= 20 ? (i/2).toString() : "" );
 
 
+
 // 依照時段顏色塞進表格的html樣式
-const getColorClass = (color) => {
-  if (color=="black"){
-    return `group bg-${color} flex items-center justify-center h-5/6`;
+let getColorClass = (this_color, idx, colorList) => {
+
+  // 給背景色
+  let classString = "";
+  if (this_color=="black"){
+    classString += `group bg-${this_color} flex items-center justify-center h-5/6 `;
   }
   else{
-    return `group bg-${color}-500 flex items-center justify-center h-full`;
+    classString +=`group bg-${this_color}-500 flex items-center justify-center h-full `;
   }
+ 
+  // 第一個或最後一個給圓角
+  let pre_pointer = idx-1;
+  let next_pointer = idx+1;
+
+  if (idx===0||colorList[pre_pointer]!==this_color){ //當為列表第0個或和前一個顏色不同，代表是此色第一個，所以加左圓角
+    classString +=" rounded-l-lg"
+  }
+  else if(idx===colorList.length||colorList[next_pointer]!==this_color){ //當為列表最後一個或和後一個顏色不同，代表是此色最後一個，所以加右圓角
+    classString +=" rounded-r-lg"
+  }
+
+  return classString;
 };
 
 
@@ -122,39 +140,10 @@ for(let time_pointer=0; time_pointer<48; time_pointer++){
   let this_time = this_time_hour + ':' + this_time_min;
   time_color_obj.body[this_time] = {"colors":this_time_colors,
                                     "color_count":color_counter,
+                                    "eliminate_order":[],
                                   };
 }
 
-
-// let test_time_color_obj = {
-//   "00:00":["black", "red", "yellow"],
-//   "00:30":["yellow","green","green"],
-//   "01:00":["green", "red","yellow"],
-//   "14:00":["yellow","red","yellow"],
-//   "23:00":["yellow","yellow","green"],
-//   "23:30":["black","black","black"]
-// };
-
-// 計算各時段的顏色次數
-// function timeColorCount(time_color_obj){
-//   let time_color_count = {};
-//   let color_count = {
-//       "green":0,
-//       "yellow":0,
-//       "red":0,
-//       "black":0
-//   };
-
-//   for (let time of time_color_obj) {
-    
-//     let colors =  time_color_obj[time];
-//     for( color of colors){
-//       time_color_count.color_counter[color] += 1;
-//     }
-//     time_color_count[time] = color_count;
-//   };
-//   return time_color_count;
-// }
 
 // 推薦的遞迴函數
 function compareColors(time_color_obj) {
@@ -174,19 +163,23 @@ function compareColors(time_color_obj) {
     // 目標要回傳recommand_list
     let recommand_list = [];//無黑無紅無黃的time放這(只有綠或空字串)
     
-    for( let time in time_color_obj_copy){    
+    for( let time in time_color_obj_copy){   
+       
         
       let color_list = time_color_obj_copy[time].colors; 
 
       if(color_list.includes("black")){
+        // time_color_obj[time].eliminate_order.push("black");
         color_list.splice(color_list.indexOf("black"), 1);//移除一個顏色
         black_bucks_obj[time] = {"colors":color_list};//放進他的籃子
       }
       else if(color_list.includes("red")){
+        // time_color_obj[time].eliminate_order.push("red");
         color_list.splice(color_list.indexOf("red"), 1);
         red_bucks_obj[time] = {"colors":color_list};
       }
-      else if(color_list.includes("yellow")){
+      else if(color_list.includes("yellow")){        
+        // time_color_obj[time].eliminate_order.push("yellow");
         color_list.splice(color_list.indexOf("yellow"), 1);
         yellow_bucks_obj[time] = {"colors":color_list};
       }
@@ -202,7 +195,13 @@ function compareColors(time_color_obj) {
   }
 }
 let recommend_time_list = compareColors(time_color_obj.body);
-console.log(recommend_time_list)
+
+
+onBeforeUnmount(() => {
+    store.commit('update_company_data', company);
+    store.commit('update_selected_company', company_selected);   
+    store.commit('update_selected_zone', selected_zone);
+});
 
 
 </script>
@@ -210,29 +209,35 @@ console.log(recommend_time_list)
 
 <template>
 
-<div class="bg-white border rounded-lg p-6">
-    <div class="overflow-x-auto">
-      <table class="text-base w-full ">
+<div class=" w-full flex flex-col md:flex-row md:h-[750px] lg:flex-row ">
+               
+  <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 w-full h-[550px] md:w-1/2 md:h-full lg:w-2/3">
+
+    <div class="overflow-auto ">
+      <table class="">
         <colgroup>
           <col class="fixed-col" /> <!-- Width for the first column -->
           <col v-for="(time_stamp, idx) in time_stamps" :key="idx" class="dynamic-col" />
         </colgroup>
         <tbody>
-          <tr>
-            <th class="text-[#005087]">              
-              <div class="text-left" v-text="selected_zone+' Time'"></div>
+          <tr class=" ">
+            <th class="text-[#005087] p-0 bg-white sticky left-0 top-0 z-[30]">              
+              <div class="text-left" v-text="selected_zone"></div>
+              <div>Time</div>
             </th>
-            <th v-for="(time_stamp, idx) in time_stamps" :key="idx" :class="'custom-td' + (time_stamp !== '' ? ' border-l border-gray-400' : '')">
-              <div v-text="(time_stamp !== '' ? time_stamp : '&nbsp&nbsp&nbsp&nbsp')" class="p-2 " ></div>
+            <th v-for="(time_stamp, idx) in time_stamps" :key="idx" :class="' bg-white sticky top-0 z-[20] custom-td ' + (time_stamp !== '' ? ' border-l border-gray-400 ' : '')">
+    
+              <div v-text="(time_stamp !== '' ? time_stamp : '&nbsp&nbsp&nbsp&nbsp')" class="px-0 " ></div>
+     
             </th>
           </tr>     
-          <tr v-for="(site, idx) in selected_company_array" :key="idx">
-            <td class="text-left p-0">{{ site }}</td>
-            <td v-for="(color, idx) in company[site].day_colors" :key="idx" :class="'custom-td'+ (idx%2 === 0 ? ' border-l border-gray-400' : '') ">
-              <div :class="getColorClass(color)">
+          <tr v-for="(site, idx) in selected_company_array" :key="idx" class=" bg-white">
+            <td class="text-left p-0 bg-white sticky left-0 z-[20]">{{ site }}</td>
+            <td v-for="(color, idx) in company[site].day_colors" :key="idx" :class="'z-[0] custom-td '+(idx%2 === 0 ? ' border-l border-gray-400' : '')">
+              <div :class="getColorClass(color,idx,company[site].day_colors)">
                 <div class="bg-[color] relative p-2">
                   <span
-                    class="hidden group-hover:inline-block text-sm text-gray-500 z-[999] rounded-md bg-yellow-100 p-1 absolute top-full left-0 w-auto whitespace-nowrap text-left"
+                    class="hidden group-hover:inline-block text-sm text-gray-500 rounded-md bg-yellow-100 p-1 absolute top-full left-0 w-auto whitespace-nowrap text-left z-30"
                     style="word-wrap: break-word;"
                   >
                     當地時區:{{ company[site].time_zone }}
@@ -251,34 +256,42 @@ console.log(recommend_time_list)
       </table>
     </div>
   </div>
+   
+  <div class="bg-white border rounded-lg p-6 mb-6 xl:mb-0 w-full md:h-full  md:w-1/2 md:overflow-auto lg:w-1/3">
+    <div class="text-left text-[#005087]" v-text="'Recommand'"></div>
+    <div v-for="(time, idx) in recommend_time_list" :key="idx" >
 
-<div class="bg-white border rounded-lg p-6">
-  <div class="text-left text-[#005087]" v-text="'Recommand'"></div>
-  <div v-for="(time, idx) in recommend_time_list" :key="idx" >
-    <div :class="'bg-green'+' border rounded-lg p-1 pt-5 m-1 mb-2'" >
       
-      <div class="grid grid-cols-6 gap-2 auto-cols-min">
-        <label class="text-4xl font-bold leading-tight col-span-5" v-text="time"></label>
+      <div :class="'bg-green'+' border rounded-lg p-1 pt-5 m-1 mb-2'" >
 
-        <div class="col-span-1 flex items-center justify-center"> 
-          <div v-for="(count, color) in time_color_obj.body[time].color_count" :key="color" :value="count"> 
-            <div class="bg-green-500 w-5 h-5 rounded-full mr-2" v-if="color==='green'"></div>
-            <div class="bg-yellow-500 w-5 h-5 rounded-full mr-2" v-if="color==='yellow'"></div>
-            <div class="bg-red-500 w-5 h-5 rounded-full mr-2" v-if="color==='red'"></div> 
-            <div class="bg-black w-5 h-5 rounded-full mr-2" v-if="color==='black'"></div> 
-            <span v-text="count" class=""></span> 
+        <!-- 父 -->
+        <div class="grid grid-cols-2">
+
+          <!-- 子1 -->
+          <label class="text-4xl font-bold leading-tight " v-text="time"></label>
+
+          <!-- 子2 -->
+          <div class="flex justify-end"> 
+            <div v-for="(count, color) in time_color_obj.body[time].color_count" :key="color" :value="count" class=""> 
+              <div class="bg-green-500 w-5 h-5 rounded-full mr-2" v-if="color==='green'"></div>
+              <div class="bg-yellow-500 w-5 h-5 rounded-full mr-2" v-if="color==='yellow'"></div>
+              <div class="bg-red-500 w-5 h-5 rounded-full mr-2" v-if="color==='red'"></div> 
+              <div class="bg-black w-5 h-5 rounded-full mr-2" v-if="color==='black'"></div> 
+              <span v-text="count" class=""></span> 
+            </div>
           </div>
         </div>
-      </div>
 
-    <div class="border-t-2 border-current mt-1 mb-4"></div> <!-- 分隔線 -->
-      <div class="flex justify-between">
-          <label class="text-sm font-bold mt-1 mb-4" v-text="selected_zone+' Time'"></label>
-  
-      </div>
+      <div class="border-t-2 border-current mt-1 mb-4"></div> <!-- 分隔線 -->
+        <div class="flex justify-between">
+            <label class="text-sm font-bold mt-1 mb-4" v-text="selected_zone+' Time'"></label>
+    
+        </div>
 
+      </div>
     </div>
   </div>
+
 </div>
 
 
@@ -286,15 +299,13 @@ console.log(recommend_time_list)
 
 </template>
 
-
-
 <style scoped>
-/* Flexbox layout for responsive table */
+
 table {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   width: 100%;
-  overflow-x: auto; /* Enable horizontal scrolling if needed */
+
 }
 
 thead {
@@ -314,7 +325,7 @@ td {
   /* Apply different styles for screens wider than 640px */
   th,
   td {
-    padding: 1rem;
+    padding: 0.5rem;
   }
 }
 

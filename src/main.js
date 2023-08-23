@@ -194,6 +194,12 @@ let company_data = {
     }
 };
 
+// 初始化全選所有的公司
+let selected_company = Object.keys(company_data).reduce(function(acc, key) {
+    acc[key] = true;
+    return acc;
+}, {})
+
 // 创建一个新的 store 实例
 const store = createStore({
     state () {
@@ -202,7 +208,7 @@ const store = createStore({
         company:company_data,
         Zone_select_moment:null,
         selected_zone:null,
-        selected_company:null,
+        selected_company:selected_company,
       }
     },
     
