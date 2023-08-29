@@ -4,9 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 # 用來取得座標
 import requests
 import os
-os.environ['REQUESTS_CA_BUNDLE'] = "TMGCert.crt"                                                # 認證(for nominatim)
-os.environ['http_proxy'] = "http://benbllee:Aa0937454850*@auhqproxy.cdn.corpnet.auo.com:8080"   # proxy
-os.environ['https_proxy'] = "https://benbllee:Aa0937454850*@auhqproxy.cdn.corpnet.auo.com:8080" # proxy
+
+from  toSQL import HolidaySQLconn
+
+# os.environ['REQUESTS_CA_BUNDLE'] = "TMGCert.crt"                                                # 認證(for nominatim)
+# os.environ['http_proxy'] = "http://benbllee:Aa0937454850*@auhqproxy.cdn.corpnet.auo.com:8080"   # proxy
+# os.environ['https_proxy'] = "https://benbllee:Aa0937454850*@auhqproxy.cdn.corpnet.auo.com:8080" # proxy
 
 app = FastAPI()
 
@@ -14,8 +17,6 @@ app = FastAPI()
 origins = [
    "http://localhost:5173", # vue跑在本地的位置
 ]
-
-
 
 # fastapi讀進origins的設定
 app.add_middleware(
@@ -54,7 +55,9 @@ def read_address(search_keywords: str):
                "lng": ""}
 
 
-
+conn_obj = HolidaySQLconn()
+conn_obj.df_to_sqlite()
+print(conn_obj.holiday_df)
 
 #  command to run the server
 #  uvicorn main:app --reload
