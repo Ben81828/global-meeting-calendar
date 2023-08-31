@@ -40,6 +40,7 @@ let defaultZone = store.state.selected_zone? store.state.selected_zone : Intl.Da
 // 串列: 因company物件內會有時區資料，此變數整理出唯一時區的串列，並用來渲染"時區下拉選單"
 let uniqueTimeZoneList = computed(() => {
 
+    console.log(1)
     let uniqueList = [defaultZone]; //先讀取使用者裝置的時區，當作預設的第一個元素
  
     for (let key in company.value){ 
@@ -347,8 +348,9 @@ onMounted(() => {
                     company.value[key].week_day = getDayInEnglish(day);  // 禮拜幾
 
 
-                    // if (layer_name==="Australia/Perth"){layer_name="Asia/Taipei"}; //"Australia/Perth"跟"Asia/Taipei"一樣，讓後續調時區時兩選項效果一樣，"Australia/Perth"可能也較容易混淆
-                    company.value[key].time_zone = layer_name;
+                    // if (layer_name==="Australia/Perth"){layer_name="Asia/Taipei"}; //"Australia/Perth"跟"Asia/Taipei"一樣，讓後續調時區時兩選項效果一樣，"Australia/Perth"可能也較容易混淆              
+                    company.value[key].time_zone = company.value[key].time_zone? company.value[key].time_zone: layer_name;
+
                     
                     // 判斷是否在工作時間或黃金時間                   
                     let hours = layer_date_obj.getHours();// 获取小时和分钟
@@ -395,7 +397,7 @@ onMounted(() => {
                         company.value[key].color=color;
                         }
                         
-                    company_data = `${key} <br>時區:${layer_name}<br>時間: ${layer_date_obj.getFullYear()}年${layer_date_obj.getMonth()}月${layer_date_obj.getDay()}日 ${hours_str}:${minutes_str}:${seconds_str}`
+                    company_data = `${key} <br>時區:${company.value[key].time_zone}<br>時間: ${layer_date_obj.getFullYear()}年${layer_date_obj.getMonth()}月${layer_date_obj.getDay()}日 ${hours_str}:${minutes_str}:${seconds_str}`
                     
        
                     break;

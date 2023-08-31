@@ -1,9 +1,12 @@
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 // timezone
 import moment from 'moment-timezone';
 import { convertDistance } from '@turf/turf';
+
+// 溝通後端
+import axios from "axios";
 
 const store = useStore();
 
@@ -13,38 +16,14 @@ let weekdays_short = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 let select_moment = store.state.Zone_select_moment? new Date(store.state.Zone_select_moment.toISOString()): new Date();
 
-// let select_moment = ref(default_moment);
 
+// 目前行事曆主要的年月
 let year = ref(select_moment.getFullYear());
-let month = ref(select_moment.getMonth() + 1);
+let month = ref(select_moment.getMonth() + 1); 
+
 
 // 整理日曆cell內的顏色、日期
-let date_cells = computed(() => {
-    
-    // 取得當前所選年月，建立calendar此月1號的Date物件pointer
-    let pointer = new Date(year.value, month.value - 1);
-    let next_month = pointer.getMonth() + 2 > 12 ? 1 : pointer.getMonth() + 2; //getMonth()會為月數少1。+2用來表示下個月，過12月則為1月
-    // 將pointer移到該月1號前最近的星期天
-    pointer.setDate(pointer.getDate() - pointer.getDay());
-    // 建立一個物件，從pointer往後迭帶，存放日期(不含月)及顏色(若該日期為當月為白色，否則為灰色)，直到當月最後一日往後最近的週六
-    let cells = {};
-    let row_num = 0;
-    let col_num = 0;
-    while(pointer.getMonth()+1!==next_month||pointer.getDay()!==0){
-            let date = pointer.getDate();
-            let color = pointer.getMonth() == month.value - 1 ? "white" : "gray";
-            cells[row_num] = cells[row_num] || {};
-            cells[row_num][col_num] = {"date":date, "color":color};
-            pointer.setDate(pointer.getDate() + 1);
-            col_num++;
-            if(col_num == 7){
-                col_num = 0;
-                row_num++;
-            }
-        }
-    return cells;
-});
-
+let date_cells = ref({});
 
 const month_cal = (command) => {
     // 先移到當月1號。因為如3/30直接向前平移一個月會到2/30，因不存在導致停留於3/1。月份會仍在3月。
@@ -61,8 +40,84 @@ const month_cal = (command) => {
     // 更新年月
     year.value = select_moment.getFullYear();
     month.value = select_moment.getMonth() + 1;
-    
+ 
 };
+
+
+// 依據month的變化，去和後端要calendar中每個cell的資訊，並渲染
+watch( month ,() => {
+
+   // 取得當前所選年月，建立calendar此月1號的Date物件pointer
+   let cell_pointer = new Date(year.value, month.value - 1);
+    // 計算下一個月，若下個月>12表示為1月。計算後記錄到next_month
+    let next_month = cell_pointer.getMonth() + 2 > 12 ? 1 : cell_pointer.getMonth() + 2; //getMonth()會為月數少1。+2用來表示下個月，過12月則為1月
+    // 將cell_pointer移到該月1號前最近的星期天
+    cell_pointer.setDate(cell_pointer.getDate() - cell_pointer.getDay());
+    // 將cell_pointer複製給cell_pointer做紀錄
+    cell_pointer = new Date(cell_pointer.getTime());
+
+    // 建立一個物件，從cell_pointer往後迭帶，存放日期(不含月)及顏色(若該日期為當月為白色，否則為灰色)，直到當月最後一日往後最近的週六
+    let cells = {};
+    let row_num = 0;
+    let col_num = 0;
+    while(cell_pointer.getMonth()+1!==next_month||cell_pointer.getDay()!==0){
+      let cell_year = cell_pointer.getFullYear();
+      let cell_month = cell_pointer.getMonth() + 1;
+      let cell_date = cell_pointer.getDate();
+      let cell_color = cell_pointer.getMonth() == month.value - 1 ? "white" : "gray";
+      cells[row_num] = cells[row_num] || {};
+      cells[row_num][col_num] = {"year":cell_year,"month":cell_month, "date":cell_date, "color":cell_color, "holiday":""};
+      cell_pointer.setDate(cell_pointer.getDate() + 1);
+      col_num++;
+      if(col_num == 7){
+          col_num = 0;
+          row_num++;
+      }
+    }
+    
+  date_cells.value = cells;
+
+  // 製作給後端查詢放假補班資料的query物件
+  let query = {};
+  query.month = {"pre":cell_pointer.getMonth(), "this":month.value, "next":next_month};
+  query.year = {"pre":cell_pointer.getFullYear(), "this":year.value, "next":next_month>month.value? year.value: year.value+1 };
+  let countrys = ["AUHQ","AUCN"];
+  let query_countrys = {}; for(let i=0; i<countrys.length; i++){query_countrys[i] = countrys[i];  }
+  query.countrys = query_countrys;
+
+  // 後續要存放假日資訊的陣列
+  let holiday_obj_arr = [];
+
+  // 向後端query放假補班資料，並合併到cell資訊中
+  axios
+    .post("/calendar", query)
+    .then((res) => {
+      holiday_obj_arr = res.data;  // [{year: '2023', month: '10', date: '1', holiday: '国庆节', holiday_type: '放假', …}, {year: '2023', month: '10', date: '10', holiday: '國慶日', holiday_type: '放假', …}
+    })
+    .catch((err) => {
+      console.log(err);
+    })
+    .finally(() => {
+      // 迭帶date_cells
+      for(let row_num in date_cells.value){
+        for(let col_num in date_cells.value[row_num]){
+
+          let sites_holiday_arr = [];
+          for(let holiday_obj of holiday_obj_arr){
+            // 檢查每個cell的year、month、date是否跟holiday_obj_arr內的每個holiday_obj的year、month、date相同
+            // 若相同則將holiday_obj的holiday、holiday_type、country資訊存入sites_holiday_arr"
+            if(date_cells.value[row_num][col_num].year==holiday_obj.year && date_cells.value[row_num][col_num].month==holiday_obj.month && date_cells.value[row_num][col_num].date==holiday_obj.date){
+              let info = {"holiday_name":holiday_obj.holiday, "holiday_type":holiday_obj.holiday_type, "holiday_country":holiday_obj.country};
+              sites_holiday_arr.push(info)
+            }
+          }
+          date_cells.value[row_num][col_num].holiday = sites_holiday_arr;
+        }
+      }
+    });
+},{ immediate: true });
+
+
 
 
 const cell_color = (color) => {
@@ -123,28 +178,31 @@ const cell_color = (color) => {
                     <div class="top h-5 w-full">
                     <span class="text-gray-500" v-text="content.date"></span>
                     </div>
-                    <!-- <div class="bottom flex-grow h-30 py-1 w-full cursor-pointer">
+                    <div class="bottom flex-grow h-30 py-1 w-full cursor-pointer" v-for="(info, idx) in content.holiday" :key="idx">
+                        
                         <div
-                            class="event bg-purple-400 text-white rounded p-1 text-sm mb-1"
+                            v-if="info.holiday_type==='补班'"
+                            class="event bg-green-400 text-white rounded p-1 text-sm mb-1"
                         >
-                            <span class="event-name">
-                            Meeting
-                            </span>
-                            <span class="time">
-                            12:00~14:00
-                            </span>
+                            <div class="event-name">
+                            ({{info.holiday_type}}){{info.holiday_name}}
+                            </div>
+                            <div class="time">
+                            {{info.holiday_country}}
+                            </div>
                         </div>
                         <div
+                            v-else
                             class="event bg-purple-400 text-white rounded p-1 text-sm mb-1"
                         >
-                            <span class="event-name">
-                            Meeting
-                            </span>
-                            <span class="time">
-                            18:00~20:00
-                            </span>
+                            <div class="event-name">
+                            ({{info.holiday_type}}){{info.holiday_name}}
+                            </div>
+                            <div class="time">
+                              {{info.holiday_country}}
+                            </div>
                         </div>
-                    </div> -->
+                    </div>
                 </div>
             </td>
           </tr>
