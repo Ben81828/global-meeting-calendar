@@ -1,6 +1,6 @@
 import './assets/style.css'
 
-import { reactive, createApp } from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 
 
@@ -16,12 +16,12 @@ axios.defaults.baseURL = import.meta.env.VITE_APP_API
 
 
 // async function to fetch the data
-const fetchCompanyData = async () => {
+const fetch_company_data = async () => {
     const res = await axios.get("/company");
     return res.data;
   }
   
-fetchCompanyData().then((company_data) => {
+fetch_company_data().then((company_data) => {
     // 初始化全選所有的公司
     let selected_company = Object.keys(company_data).reduce(function(acc, key) {
         acc[key] = true;
@@ -73,7 +73,7 @@ fetchCompanyData().then((company_data) => {
   
   
     createApp(App).use(route).use(store).mount('#app')
-    
+
   })
 
 

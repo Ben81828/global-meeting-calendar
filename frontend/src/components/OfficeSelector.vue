@@ -141,7 +141,7 @@ const search = () => {
             </div>
         </div>
     </div>
-    </div>
+</div>
 
 
 </template>

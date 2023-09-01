@@ -19,9 +19,6 @@ import moment from 'moment-timezone';
 //用來檢查座標是否落在時區的多邊形內，以確認落在哪個時區
 import * as turf from '@turf/turf'
 
-// 溝通後端
-import axios from "axios";
-
 // store
 import { useStore } from 'vuex';
 
@@ -49,7 +46,6 @@ let uniqueTimeZoneList = computed(() => {
             uniqueList.push(timezone);
         }
     }
-
     return uniqueList
 });
 

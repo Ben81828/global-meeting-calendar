@@ -18,24 +18,10 @@ import Navbar from "./Navbar.vue"
 
         <div class="p-6 bg-gray-100 mb-0 z-0 ">
             <router-view></router-view>
-            <!-- <Map></Map> -->
         </div>
-
-        <!-- <Footer></Footer> -->
-
       </div>
     </div>
 </div>
-
-
-
-        <!-- <div class="">
-            <Map></Map>
-        </div> -->
-        
-
-    
-
     
 </template>
 
