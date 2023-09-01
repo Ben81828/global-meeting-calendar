@@ -2,14 +2,20 @@ import os
 import pandas as pd
 import sqlite3
 
+import os
+import pandas as pd
+import sqlite3
+
 class HolidaySQLconn:
 
     def __init__(self):
         self.hol_path = "./hols/"
-        self.db_path = "./holiday.db"
+        self.db_path = "./Calendar.db"
         self.col_name_list = ["year","month","date","holiday", "holiday_type", "country"]
         self.holiday_df = self.hols_to_df(self.col_name_list)
-              
+        self.create_hol_table()
+        self.insert_hol_data()
+                      
 
     def hols_to_df(self, col_name_list):
         # 將hol檔案轉成self.holiday_df: pd.dataframe
@@ -44,7 +50,7 @@ class HolidaySQLconn:
 
     def create_table_by_df_col(self, table_name, col_name):
         # 做一個table，pk為col_name
-        create_country_table_cmd = \
+        create_table_cmd = \
             f'''CREATE TABLE {table_name}
                 ({col_name} text PRIMARY KEY)'''
         
@@ -52,7 +58,7 @@ class HolidaySQLconn:
         try:
             conn = sqlite3.connect(self.db_path)         
             c = conn.cursor()
-            c.execute(create_country_table_cmd)
+            c.execute(create_table_cmd)
             conn.commit()
         
         except Exception as e:
@@ -184,3 +190,31 @@ class HolidaySQLconn:
         return holiday_table
 
 
+
+class OfficeSQLconn:
+
+    def __init__(self):
+        self.db_path = "./Calendar.db"        
+        self.office_path = "全球辦公室時間資料列表.csv"
+        self.office_df = pd.read_csv(self.office_path, encoding='utf-8-sig')
+        self.office_table_name = "office"
+        self.office_df_to_sql()
+    
+    def office_df_to_sql(self):
+        self.office_df.to_sql( self.office_table_name, sqlite3.connect(self.db_path), if_exists='replace', index=False)
+
+    def check_office_table(self):
+        select_cmd = f"SELECT * FROM {self.office_table_name}"
+        
+        try:
+            conn = sqlite3.connect(self.db_path)        
+            c = conn.cursor()
+            table_data = c.execute(select_cmd).fetchall()
+            
+        except Exception as e:
+            print(e)
+            
+        finally:
+            conn.close()
+
+        return table_data

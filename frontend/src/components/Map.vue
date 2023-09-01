@@ -1,5 +1,8 @@
 <script setup>
 
+//test
+import OfficeSelector from "./OfficeSelector.vue"
+
 import { ref, reactive, watch, computed, onMounted, onBeforeUnmount, nextTick} from 'vue';
 
 // leaflet
@@ -22,6 +25,7 @@ import axios from "axios";
 // store
 import { useStore } from 'vuex';
 
+
 const store = useStore(); // store實體
 
 // 公司資料
@@ -30,17 +34,15 @@ let company = computed(() => {return store.state.company});
 // 物件: 已被選的公司。各公司按鈕value會on這個物件key所對應的值(true或false)
 let company_checked = computed(() => {return store.state.selected_company});
 
-
 // bool: 此變數為"公司全選按鈕"on的值，按鈕沒被勾選時會變false
 let all_company_checked = ref(store.state.allcompany_selected);
 
 // 預設時區。使用者瀏覽器當前的時區
-let defaultZone = store.state.selected_zone? store.state.selected_zone : Intl.DateTimeFormat().resolvedOptions().timeZone;
+let defaultZone = store.state.selected_zone;
 
 // 串列: 因company物件內會有時區資料，此變數整理出唯一時區的串列，並用來渲染"時區下拉選單"
 let uniqueTimeZoneList = computed(() => {
 
-    console.log(1)
     let uniqueList = [defaultZone]; //先讀取使用者裝置的時區，當作預設的第一個元素
  
     for (let key in company.value){ 
@@ -384,7 +386,11 @@ onMounted(() => {
                         color="green";
                         company.value[key].color=color;
                         } 
-                    else if(timeInMinutes >= stretch_start && timeInMinutes < stretch_end){
+                    else if(timeInMinutes >= stretch_start && timeInMinutes < work_start){
+                        color="yellow";
+                            company.value[key].color=color;
+                        }
+                    else if(timeInMinutes >= work_end && timeInMinutes <rest_start){
                         color="yellow";
                             company.value[key].color=color;
                         }
@@ -477,6 +483,7 @@ onBeforeUnmount(() => {
              <button @click="isShow = true" class="font-extrabold text-[#253fae] bg-transparent hover:bg-[#FAF4FF] border rounded-lg p-2">
                 + Edit office
             </button>
+            <OfficeSelector></OfficeSelector>
         </div>
 
         <!-- 各site時間字卡 -->
@@ -486,7 +493,12 @@ onBeforeUnmount(() => {
                 <!-- 時間 -->
                 <div class="flex justify-between">
                 <label class="text-4xl font-bold leading-tight" v-text="company[site].time"></label>
-                <label class="text-sm font-bold leading-tight" v-text="site"></label>
+                <div class="text-right">
+                    <label class="text-sm font-bold leading-tight" v-text="site.split('_')[0]"></label>
+                    <br>
+                    <label class="text-sm font-bold leading-tight" v-text="site.split('_')[1]"></label>
+                </div>
+                
                 </div>
                 <!-- 分隔線 -->
                 <div class="border-t-2 border-current mt-1 mb-4"></div>
@@ -545,6 +557,8 @@ onBeforeUnmount(() => {
                 </div>
             </div>
         </div>
+
+        
     </div>
 
 

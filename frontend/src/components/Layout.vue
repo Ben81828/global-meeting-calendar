@@ -2,7 +2,6 @@
 import Sidebar from "./Sidebar.vue"
 // import Footer from "./Footer.vue"
 import Navbar from "./Navbar.vue"
-import Map from "./Map.vue"
 
 </script>
 

@@ -3,11 +3,15 @@ import { onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import moment from 'moment-timezone'; // timezone
 
+//test
+import OfficeSelector from "./OfficeSelector.vue"
+
 
 const store = useStore();
 
 // 時區資訊物件
 // 選定的時區
+// computed(() => {});
 let selected_zone = store.state.selected_zone;
 // 各公司資訊物件
 let company = store.state.company;
@@ -60,7 +64,10 @@ for (let key in company) {
         if (this_timeInMinutes >= this_work_start && this_timeInMinutes < this_work_end) {
                 this_time_color="green";
             } 
-        else if(this_timeInMinutes >= this_stretch_start && this_timeInMinutes < this_stretch_end){
+        else if(this_timeInMinutes >= this_stretch_start && this_timeInMinutes < this_work_start){
+                this_time_color="yellow";
+            }
+            else if(this_timeInMinutes >= this_work_end && this_timeInMinutes < this_stretch_end){
                 this_time_color="yellow";
             }
         else if(this_timeInMinutes >= this_rest_start || this_timeInMinutes < this_rest_end){
@@ -106,7 +113,8 @@ let getColorClass = (this_color, idx, colorList) => {
   if (idx===0||colorList[pre_pointer]!==this_color){ //當為列表第0個或和前一個顏色不同，代表是此色第一個，所以加左圓角
     classString +=" rounded-l-lg"
   }
-  else if(idx===colorList.length||colorList[next_pointer]!==this_color){ //當為列表最後一個或和後一個顏色不同，代表是此色最後一個，所以加右圓角
+
+  if(idx===colorList.length||colorList[next_pointer]!==this_color){ //當為列表最後一個或和後一個顏色不同，代表是此色最後一個，所以加右圓角
     classString +=" rounded-r-lg"
   }
 
@@ -213,6 +221,7 @@ onBeforeUnmount(() => {
 <template>
 
 <div class=" w-full flex flex-col md:flex-row md:h-[750px] lg:flex-row ">
+  <OfficeSelector></OfficeSelector>
                
   <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 w-full h-[550px] md:w-1/2 md:h-full lg:w-2/3">
 

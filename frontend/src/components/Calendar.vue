@@ -26,8 +26,9 @@ let month = ref(select_moment.getMonth() + 1);
 let date_cells = ref({});
 
 const month_cal = (command) => {
+
     // 先移到當月1號。因為如3/30直接向前平移一個月會到2/30，因不存在導致停留於3/1。月份會仍在3月。
-    select_moment.setDate(select_moment.getDate() - select_moment.getDay());
+    select_moment.setDate(1);
     
     // moment向前或向後平移一個月
     if(command==="+1"){
@@ -92,6 +93,7 @@ watch( month ,() => {
   axios
     .post("/calendar", query)
     .then((res) => {
+
       holiday_obj_arr = res.data;  // [{year: '2023', month: '10', date: '1', holiday: '国庆节', holiday_type: '放假', …}, {year: '2023', month: '10', date: '10', holiday: '國慶日', holiday_type: '放假', …}
     })
     .catch((err) => {
@@ -115,6 +117,7 @@ watch( month ,() => {
         }
       }
     });
+
 },{ immediate: true });
 
 
