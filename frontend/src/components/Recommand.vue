@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount } from 'vue';
+import { computed, watch, onBeforeUnmount } from 'vue';
 import { useStore } from 'vuex';
 import moment from 'moment-timezone'; // timezone
 
@@ -11,88 +11,91 @@ const store = useStore();
 
 // 時區資訊物件
 // 選定的時區
-// computed(() => {});
-let selected_zone = store.state.selected_zone;
+let selected_zone = computed(() => {return store.state.selected_zone});
 // 各公司資訊物件
-let company = store.state.company;
-let company_selected = store.state.selected_company;
-let selected_company_array = Object.keys(company_selected).filter(site => company_selected [site]);
+let company =computed(() => {return  store.state.company;});
+let company_selected = computed(() => {return store.state.selected_company;});
+let selected_company_array = computed(() => { console.log(company_selected);return Object.keys(company_selected.value).filter(site => company_selected.value[site]);});
 
 // 選定時區物件回到當天00:00:00
-let select_moment_obj = store.state.Zone_select_moment.clone(); // 2021-09-01T00:00:00+08:00
-let select_hours = select_moment_obj.hours() // 0~23
-let select_mins = select_moment_obj.minutes() // 0~59
-let select_seconds =  select_moment_obj.seconds() // 0~59
-let select_0hr_obj = select_moment_obj.subtract(select_hours, 'hours').subtract(select_mins, 'minutes').subtract(select_seconds, 'seconds') // 00:00:00~23:59:59
+let select_moment_obj = computed(() => {return store.state.Zone_select_moment.clone();}); // 2021-09-01T00:00:00+08:00
+let select_hours = select_moment_obj.value.hours() // 0~23
+let select_mins = select_moment_obj.value.minutes() // 0~59
+let select_seconds =  select_moment_obj.value.seconds() // 0~59
+let select_0hr_obj = select_moment_obj.value.subtract(select_hours, 'hours').subtract(select_mins, 'minutes').subtract(select_seconds, 'seconds') // 00:00:00~23:59:59
 
-// 建立各 site 圖標時，會從company中取出座標，並依座標檢查它在timezoneLayers中所在時區，用date_obj去計算其時間，並將時間放回company中
-for (let key in company) {
-    // 在 checkbox 被打勾的才進行後續建立圖標
-    if (company_selected[key] !== true){ continue };
+// 函式: 使用迴圈用來建立各公司的時區時間物件，並建立各公司的時區時間陣列、顏色陣列
+let add_time_color_in_company = (company) => {
+  for (let key in company.value) {
+      // 在 checkbox 被打勾的才進行後續建立圖標
+      if (company_selected.value[key] !== true){ continue };
 
-    let this_company = company[key];
-    
-    // 把work time和stretch time转换为分钟的总量
-    let this_work_interval = this_company.work_hour
-    let this_work_start = parseInt(this_work_interval[0].split(":")[0]) * 60 + parseInt(this_work_interval[0].split(":")[1]);
-    let this_work_end = parseInt(this_work_interval[1].split(":")[0]) * 60 + parseInt(this_work_interval[1].split(":")[1]);
+      let this_company = company.value[key];
+      
+      // 把work time和stretch time转换为分钟的总量
+      let this_work_interval = this_company.work_hour
+      let this_work_start = parseInt(this_work_interval[0].split(":")[0]) * 60 + parseInt(this_work_interval[0].split(":")[1]);
+      let this_work_end = parseInt(this_work_interval[1].split(":")[0]) * 60 + parseInt(this_work_interval[1].split(":")[1]);
 
-    // 把work time和stretch time转换为分钟的总量
-    let this_stretch_interval = this_company.stretch_hour
-    let this_stretch_start = parseInt(this_stretch_interval[0].split(":")[0]) * 60 + parseInt(this_stretch_interval[0].split(":")[1]);
-    let this_stretch_end = parseInt(this_stretch_interval[1].split(":")[0]) * 60 + parseInt(this_stretch_interval[1].split(":")[1]);
+      // 把work time和stretch time转换为分钟的总量
+      let this_stretch_interval = this_company.stretch_hour
+      let this_stretch_start = parseInt(this_stretch_interval[0].split(":")[0]) * 60 + parseInt(this_stretch_interval[0].split(":")[1]);
+      let this_stretch_end = parseInt(this_stretch_interval[1].split(":")[0]) * 60 + parseInt(this_stretch_interval[1].split(":")[1]);
 
-    // 把work time和rest time转换为分钟的总量
-    let this_rest_interval = this_company.rest_hour
-    let this_rest_start = parseInt(this_rest_interval[0].split(":")[0]) * 60 + parseInt(this_rest_interval[0].split(":")[1]);
-    let this_rest_end = parseInt(this_rest_interval[1].split(":")[0]) * 60 + parseInt(this_rest_interval[1].split(":")[1]);
+      // 把work time和rest time转换为分钟的总量
+      let this_rest_interval = this_company.rest_hour
+      let this_rest_start = parseInt(this_rest_interval[0].split(":")[0]) * 60 + parseInt(this_rest_interval[0].split(":")[1]);
+      let this_rest_end = parseInt(this_rest_interval[1].split(":")[0]) * 60 + parseInt(this_rest_interval[1].split(":")[1]);
 
-    // 複製select_0hr_obj，並初始轉為此時區的時間物件
-    let this_zone_time_obj = moment(select_0hr_obj).tz(this_company.time_zone);
+      // 複製select_0hr_obj，並初始轉為此時區的時間物件
+      let this_zone_time_obj = moment(select_0hr_obj).tz(this_company.time_zone);
 
-    let times = [];
-    let colors = [];
+      let times = [];
+      let colors = [];
 
-    for (let add_30mins=0; add_30mins<48; add_30mins++){        
-        
-        let this_zone_hours = this_zone_time_obj.hours();
-        let this_zone_mins = this_zone_time_obj.minutes();   
-        let this_timeInMinutes = this_zone_hours * 60 + this_zone_mins;
+      for (let add_30mins=0; add_30mins<48; add_30mins++){        
+          
+          let this_zone_hours = this_zone_time_obj.hours();
+          let this_zone_mins = this_zone_time_obj.minutes();   
+          let this_timeInMinutes = this_zone_hours * 60 + this_zone_mins;
 
-        let this_time_color
-         // work_time內為綠色、stretch_time內為黃色、red_time內為紅色、rest_time內為黑色
-        if (this_timeInMinutes >= this_work_start && this_timeInMinutes < this_work_end) {
-                this_time_color="green";
-            } 
-        else if(this_timeInMinutes >= this_stretch_start && this_timeInMinutes < this_work_start){
-                this_time_color="yellow";
-            }
-            else if(this_timeInMinutes >= this_work_end && this_timeInMinutes < this_stretch_end){
-                this_time_color="yellow";
-            }
-        else if(this_timeInMinutes >= this_rest_start || this_timeInMinutes < this_rest_end){
-                this_time_color="black";
-            }
-        else{
-                this_time_color="red";
-            }
-        
-        colors.push(this_time_color);
-        times.push(this_zone_time_obj.format());
+          let this_time_color
+          // work_time內為綠色、stretch_time內為黃色、red_time內為紅色、rest_time內為黑色
+          if (this_timeInMinutes >= this_work_start && this_timeInMinutes < this_work_end) {
+                  this_time_color="green";
+              } 
+          else if(this_timeInMinutes >= this_stretch_start && this_timeInMinutes < this_work_start){
+                  this_time_color="yellow";
+              }
+              else if(this_timeInMinutes >= this_work_end && this_timeInMinutes < this_stretch_end){
+                  this_time_color="yellow";
+              }
+          else if(this_timeInMinutes >= this_rest_start || this_timeInMinutes < this_rest_end){
+                  this_time_color="black";
+              }
+          else{
+                  this_time_color="red";
+              }
+          
+          colors.push(this_time_color);
+          times.push(this_zone_time_obj.format());
 
-        // 增加30分鐘
-        this_zone_time_obj.add( 30, 'minutes');
-        
-    };
-    company[key].day_times = times;
-    company[key].day_colors = colors;
-
+          // 增加30分鐘
+          this_zone_time_obj.add( 30, 'minutes');
+          
+      };
+      company.value[key].day_times = times;
+      company.value[key].day_colors = colors;
+  };
 };
+
+// 監控公司資料有變化時
+watch([company_selected] , () => {
+  add_time_color_in_company(company); //重新整理公司物件中，各公司的時間陣列、顏色陣列
+});
 
 // ["0","","1","",.....]
 let time_stamps = Array.from({length: 48}, (_, i) => i % 2 === 0 && i < 20 ? "0" + (i/2).toString() : i % 2 === 0 && i >= 20 ? (i/2).toString() : "" );
-
-
 
 // 依照時段顏色塞進表格的html樣式
 let getColorClass = (this_color, idx, colorList) => {
@@ -122,41 +125,46 @@ let getColorClass = (this_color, idx, colorList) => {
 };
 
 
-
-
-
 /////////推薦
+// 推薦1: 先建立時間顏色物件，格式如下:header為選定的公司，body為各時段的顏色
+let time_color_obj = computed(() => {
 
-let time_color_obj = {};
-time_color_obj.header = selected_company_array;
-time_color_obj.body = {};
+  add_time_color_in_company(company);
+  
+  let time_color_data = {};
+  time_color_data.header = selected_company_array.value;
+  time_color_data.body = {};
 
-for(let time_pointer=0; time_pointer<48; time_pointer++){
+  // 建立time_color_data.body的各時段顏色資料
+  for(let time_pointer=0; time_pointer<48; time_pointer++){
 
-  let this_time_colors = [];
-  let color_counter = {
-      "green":0,
-      "yellow":0,
-      "red":0,
-      "black":0
-  };
-  for( let site of time_color_obj.header ){
-    let this_time_color = company[site].day_colors[time_pointer];
-    this_time_colors.push(this_time_color);
-    color_counter[this_time_color] += 1;
+    let this_time_colors = [];
+    let color_counter = {
+        "green":0,
+        "yellow":0,
+        "red":0,
+        "black":0
+    };
+    for( let site of time_color_data.header ){
 
+      let this_time_color = company.value[site].day_colors[time_pointer];
+      this_time_colors.push(this_time_color);
+      color_counter[this_time_color] += 1;
+
+    }
+    let this_time_hour = Math.floor((time_pointer*30)/60) < 10 ? `0${Math.floor((time_pointer*30)/60)}` : `${Math.floor((time_pointer*30)/60)}`;
+    let this_time_min = time_pointer%2 !== 0 ? "30" : "00" ;
+    let this_time = this_time_hour + ':' + this_time_min;
+    time_color_data.body[this_time] = {"colors":this_time_colors,
+                                      "color_count":color_counter,
+                                      "eliminate_order":[],
+                                    };
   }
-  let this_time_hour = Math.floor((time_pointer*30)/60) < 10 ? `0${Math.floor((time_pointer*30)/60)}` : `${Math.floor((time_pointer*30)/60)}`;
-  let this_time_min = time_pointer%2 !== 0 ? "30" : "00" ;
-  let this_time = this_time_hour + ':' + this_time_min;
-  time_color_obj.body[this_time] = {"colors":this_time_colors,
-                                    "color_count":color_counter,
-                                    "eliminate_order":[],
-                                  };
-}
+  return time_color_data
+});
 
 
-// 推薦的遞迴函數
+// 推薦2: 依照顏色數量排序，有黑<有紅<有黃<有綠，黑多<黑少、紅多<紅少、黃多<黃少、綠多<綠少。依此回傳推薦的時間順序
 function compareColors(time_color_obj) {
 
   let time_color_obj_copy = JSON.parse(JSON.stringify(time_color_obj));
@@ -205,15 +213,14 @@ function compareColors(time_color_obj) {
   return recommand_list
   }
 }
-let recommend_time_list = compareColors(time_color_obj.body);
 
+// 推薦3: 計算推薦的時間順序
+let recommend_time_list = computed(() => {return compareColors(time_color_obj.value.body);});
 
 onBeforeUnmount(() => {
-    store.commit('update_company_data', company);
-    store.commit('update_selected_company', company_selected);   
-    store.commit('update_selected_zone', selected_zone);
+    store.commit('update_selected_company', company_selected.value);   
+    store.commit('update_selected_zone', selected_zone.value);
 });
-
 
 </script>
 
@@ -221,7 +228,7 @@ onBeforeUnmount(() => {
 <template>
 
 <div class=" w-full flex flex-col md:flex-row md:h-[750px] lg:flex-row ">
-  <OfficeSelector></OfficeSelector>
+  
                
   <div class="bg-white border rounded-lg flex justify-center  p-6 mb-6 w-full h-[550px] md:w-1/2 md:h-full lg:w-2/3">
 
@@ -270,10 +277,12 @@ onBeforeUnmount(() => {
   </div>
    
   <div class="bg-white border rounded-lg p-6 mb-6 xl:mb-0 w-full md:h-full  md:w-1/2 md:overflow-auto lg:w-1/3">
+    <div>
+      <OfficeSelector></OfficeSelector>
+    </div>
     <div class="text-left text-[#005087]" v-text="'Recommand'"></div>
     <div v-for="(time, idx) in recommend_time_list" :key="idx" >
 
-      
       <div :class="'bg-green'+' border rounded-lg p-1 pt-5 m-1 mb-2'" >
 
         <!-- 父 -->

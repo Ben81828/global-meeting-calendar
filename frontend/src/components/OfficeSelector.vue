@@ -1,9 +1,12 @@
 <script setup>
 
-import { ref, reactive, watch, computed, onMounted, onBeforeUnmount, nextTick} from 'vue';
+import { ref, watch, computed, nextTick} from 'vue';
 
 // 溝通後端
 import axios from "axios";
+
+// 導入tz-lookup
+import tzlookup from "tz-lookup";
 
 // store
 import { useStore } from 'vuex';
@@ -18,7 +21,6 @@ let company_checked = computed(() => {return store.state.selected_company});
 // bool: 此變數為"公司全選按鈕"on的值，按鈕沒被勾選時會變false
 let all_company_checked = ref(store.state.allcompany_selected);
 
-
 // 監控all_company_checked有變化時，改變company_checked所有value，並渲染"公司全選按鈕"的文字。
 watch(all_company_checked, (is_all) => {
 
@@ -31,13 +33,15 @@ store.commit('update_is_all_company', is_all);
 return is_all;
 });
 
-
 // 燈箱控制
 let isShow = ref(false); // 燈箱出現與否
 let modalStyle = computed(() => {return !isShow.value ? "display:none;" : ""}); // 燈箱出現與否的樣式
 const toggleModal = () => { isShow.value = !isShow.value; }; // 燈箱出現與否的切換
 
-// 公司資料
+// 搜尋地點
+let search_text = ref("");
+
+// 搜尋公司資料
 const search = () => {
     let search_text_lower = search_text.value.toLowerCase();
 
@@ -48,6 +52,9 @@ const search = () => {
         let locate_name = res.data.company;
         let lat =  res.data.lat;
         let lng = res.data.lng
+
+        // 用tz-lookup找到他的IANA
+        let tz = tzlookup(lat, lng);
         
 
         // 新增到company、company_checked，並渲染到leaflet、燈箱選項、各site時間字卡
@@ -58,9 +65,9 @@ const search = () => {
             month: null,
             date: null,
             time: null,
-            time_zone: null,            
+            time_zone: tz,            
             work_hour: ["08:00", "17:00"],
-            stretch_hour: ["19:00", "23:00"],
+            stretch_hour: ["07:30", "23:00"],
             rest_hour: ["23:00", "07:00"],
             color: null,
             day_times: null,
@@ -73,7 +80,7 @@ const search = () => {
 
         // nextTick讓這步跟all_company_checked.value = false;不同步更新html
         nextTick(() => {
-            company_checked.value[locate_name] = true;
+            store.state.selected_company[locate_name] = true;
         });
 
 
@@ -144,7 +151,7 @@ const search = () => {
 
 .modal-mask {
   position: fixed;
-  z-index: 10;
+  z-index: 40;
   top: 0;
   left: 0;
   width: 100%;
